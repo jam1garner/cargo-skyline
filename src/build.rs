@@ -7,7 +7,7 @@ use linkle::format::nxo::NxoFile;
 const XARGO_GIT_URL: &str = "https://github.com/jam1garner/xargo";
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
-    if !Command::new("xargo").status().map(|x| x.success()).unwrap_or_default() {
+    if !Command::new("xargo").stdout(Stdio::null()).status().map(|x| x.success()).unwrap_or_default() {
         match Command::new("cargo")
                     .args(&["install", "--git", XARGO_GIT_URL, "--force"])
                     .stdout(Stdio::piped())
@@ -73,7 +73,10 @@ pub fn build_get_nro(args: Vec<String>) -> Result<PathBuf> {
     Ok(nro_path)
 }
 
-pub fn build(args: Vec<String>) -> Result<()> {
+pub fn build(mut args: Vec<String>, release: bool) -> Result<()> {
+    if release {
+        args.push("--release".into());
+    }
     build_get_nro(args)?;
 
     Ok(())

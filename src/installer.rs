@@ -59,8 +59,13 @@ fn get_plugin_path(title_id: &str) -> String {
     format!("/atmosphere/contents/{}/romfs/skyline/plugins", title_id)
 }
 
-pub fn install(ip: Option<String>, title_id: Option<String>) -> Result<()> {
-    let nro_path = build::build_get_nro(vec![])?;
+pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
+    let args = if release {
+        vec![String::from("--release")]
+    } else {
+        vec![]
+    };
+    let nro_path = build::build_get_nro(args)?;
 
     let ip = verify_ip(get_ip(ip)?)?;
 
@@ -110,8 +115,8 @@ pub fn set_ip(ip: String) -> Result<()> {
     ).map_err(|_| Error::WriteIpDenied)
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>) -> Result<()> {
-    install(ip.clone(), title_id)?;
+pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
+    install(ip.clone(), title_id, release)?;
     
     let ip = verify_ip(get_ip(ip)?)?;
     

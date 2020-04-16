@@ -20,10 +20,15 @@ enum SubCommands {
     },
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
+        #[structopt(long)]
+        release: bool,
         args: Vec<String>
     },
     #[structopt(about = "Build the current plugin and install to a switch over FTP")]
     Install {
+        #[structopt(short, long)]
+        debug: bool,
+        
         #[structopt(short, long)]
         ip: Option<String>,
 
@@ -41,6 +46,9 @@ enum SubCommands {
     ShowIp,
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Run {
+        #[structopt(short, long)]
+        debug: bool,
+        
         #[structopt(short, long)]
         ip: Option<String>,
 
@@ -64,11 +72,11 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id } => installer::install(ip, title_id),
+        Install { ip, title_id, debug } => installer::install(ip, title_id, !debug),
         SetIp { ip } => installer::set_ip(ip),
         ShowIp => installer::show_ip(),
-        Build { args } => build::build(args),
-        Run { ip, title_id} => installer::install_and_run(ip, title_id),
+        Build { args, release } => build::build(args, release),
+        Run { ip, title_id, debug} => installer::install_and_run(ip, title_id, !debug),
         New { name } => new(name),
     };
 
