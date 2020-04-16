@@ -39,6 +39,7 @@ enum SubCommands {
     },
     #[structopt(about = "Show the currently configured IP address")]
     ShowIp,
+    #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Run {
         #[structopt(short, long)]
         ip: Option<String>,
