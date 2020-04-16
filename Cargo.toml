@@ -1,0 +1,16 @@
+[package]
+name = "cargo-skyline"
+version = "1.0.0"
+authors = ["jam1garner <jam1.mcleod@hotmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+structopt = "0.3.13"
+dirs = "2.0.2"
+colored = "1.9.3"
+serde = { version = "1", features = ["derive"] }
+cargo_metadata = "0.9.1"
+linkle = { git = "https://github.com/MegatonHammer/linkle.git" }
+serde_json = "1.0.51"
