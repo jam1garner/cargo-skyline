@@ -32,3 +32,38 @@ SUBCOMMANDS:
 ```sh
 cargo install --git https://github.com/jam1garner/cargo-skyline
 ```
+
+## Example usage
+
+Create a new plugin called `fps_counter` (in a folder of the same name) in the current directory:
+```
+cargo skyline new fps_counter
+```
+
+Build the current plugin as an nro:
+```
+cargo skyline build
+```
+
+Set the ip of the Switch to install to as `192.168.0.0`:
+```
+cargo skyline set-ip 192.168.0.0
+```
+
+Install the current plugin on a switch at ip `192.168.0.0` for an application with title of `01006A800016E000`:
+```
+cargo skyline install --ip 192.168.0.0 --title-id 01006A800016E000
+```
+Note: if the IP has been set, it can be omitted from the arguments (or overriden using the arguments).
+
+To set a default title id for a plugin use the following format in `Cargo.toml`:
+```toml
+[package.metadata.skyline]
+titleid = "01006A800016E000"
+```
+
+Install the current plugin to the default IP and title ID, then listen for output from the console:
+```
+cargo skyline run
+```
+
