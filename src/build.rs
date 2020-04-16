@@ -7,7 +7,7 @@ use linkle::format::nxo::NxoFile;
 const XARGO_GIT_URL: &str = "https://github.com/jam1garner/xargo";
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
-    if !Command::new("xargo").stdout(Stdio::null()).status().map(|x| x.success()).unwrap_or_default() {
+    if !Command::new("xargo").stdout(Stdio::null()).status().map(|_| true).unwrap_or_default() {
         match Command::new("cargo")
                     .args(&["install", "--git", XARGO_GIT_URL, "--force"])
                     .stdout(Stdio::piped())
@@ -21,12 +21,16 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
         }
     }
 
+    let current_dir = std::env::current_dir()?;
+
     let mut command =
         Command::new("xargo")
             .args(&[
-                "build", "--message-format=json", "--color", "always"
+                "build", "--message-format=json-diagnostic-rendered-ansi", "--color", "always"
             ])
             .args(args)
+            // Needed to make crates.io crates use the custom target
+            .env("RUST_TARGET_PATH", current_dir)
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();
@@ -39,6 +43,12 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
             .filter_map(|message| {
                 if let Message::CompilerArtifact(artifact) = message {
                     Some(artifact)
+                } else if let Message::CompilerMessage(message) = message {
+                    if let Some(msg) = message.message.rendered {
+                        println!("{}", msg);
+                    }
+
+                    None
                 } else {
                     None
                 }
