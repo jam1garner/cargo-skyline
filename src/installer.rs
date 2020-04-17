@@ -59,6 +59,10 @@ fn get_plugin_path(title_id: &str) -> String {
     format!("/atmosphere/contents/{}/romfs/skyline/plugins", title_id)
 }
 
+fn get_game_path(title_id: &str) -> String {
+    format!("/atmosphere/contents/{}", title_id)
+}
+
 pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
     let args = if release {
         vec![String::from("--release")]
@@ -80,7 +84,10 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     let dir_path = get_plugin_path(&title_id);
 
     println!("Ensuring directory exists...");
-    let _ = client.mkdir(&dir_path);
+    let _ = client.mkdir(&(get_game_path(&title_id)));
+    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs"));
+    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline"));
+    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
 
     let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;
 
