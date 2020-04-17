@@ -3,7 +3,7 @@
 A cargo subcommand for making it easier to work with (and make) [Skyline](https://github.com/ultimate-research/skyline-rs) plugins.
 
 ```
-cargo-skyline 1.0.0
+cargo-skyline 1.1.0
 
 USAGE:
     cargo skyline <SUBCOMMAND>
