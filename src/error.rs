@@ -12,6 +12,8 @@ pub enum Error {
     NoTitleId,
     FailParseCargoStream,
     FailWriteNro,
+    NoStdFound,
+    FailUpdateStd,
     IoError(io::Error),
     FtpError(FtpError),
     CargoError(cargo_metadata::Error),

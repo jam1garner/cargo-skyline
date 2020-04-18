@@ -5,6 +5,7 @@ use structopt::StructOpt;
 use error::{Error, Result};
 use std::path::Path;
 use colored::*;
+use std::path::PathBuf;
 
 mod installer;
 mod error;
@@ -57,6 +58,14 @@ enum SubCommands {
             about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
         )]
         title_id: Option<String>
+    },
+    #[structopt(about = "Download the latest stdlib for aarch64-skyline-switch")]
+    UpdateStd {
+        #[structopt(short, long, default_value = "https://github.com/jam1garner/rust-std-skyline-squashed")]
+        git: String,
+
+        #[structopt(short, long)]
+        std_path: Option<PathBuf>
     }
 }
 
@@ -78,6 +87,7 @@ fn main() {
         Build { args, release } => build::build(args, release),
         Run { ip, title_id, debug} => installer::install_and_run(ip, title_id, !debug),
         New { name } => new(name),
+        UpdateStd { git, std_path } => update_std(git, std_path)
     };
 
     if let Err(err) = result {
@@ -99,7 +109,11 @@ fn main() {
             Error::ExitStatus(code) => std::process::exit(code),
             Error::FailWriteNro => eprintln!("{}", "Unable to convert file from ELF to NRO".red()),
             Error::IoError(err) => eprintln!("{}{}", "IoError: ".red(), err),
+            Error::FailUpdateStd => eprintln!("{}", "Could not update std due to a git-related failure".red()),
+            Error::NoStdFound => eprintln!("{}", "Could not find stdlib. Make sure you're inside of either your workspace or a plugin folder".red()),
         }
+
+        std::process::exit(1);
     }
 }
 
@@ -164,3 +178,44 @@ fn new(name: String) -> Result<()> {
 
     Ok(())
 } 
+
+
+fn update_std(git_url: String, std_path: Option<PathBuf>) -> Result<()> {
+    let in_same_folder: &Path = Path::new("rust-std-skyline-squashed");
+    let in_parent_folder: &Path = Path::new("../rust-std-skyline-squashed");
+    let path = if let Some(path) = &std_path {
+        Ok(&**path)
+    } else if in_same_folder.exists() {
+        Ok(in_same_folder)
+    } else if in_parent_folder.exists() {
+        Ok(in_parent_folder)
+    } else {
+        Err(Error::NoStdFound)
+    }?;
+
+    println!("Removing existing stdlib...");
+    let _ = fs::remove_dir_all(path);
+
+    println!("Cloning current stdlib...");
+    let status = 
+        Command::new("git")
+            .args(&[
+                "clone", &git_url, path.to_str().ok_or(Error::NoStdFound)?
+            ])
+            .stdout(std::process::Stdio::piped())
+            .status()
+            .unwrap();
+
+    if !status.success() {
+        return Err(Error::FailUpdateStd)
+    }
+
+    println!("Clearing xargo cache...");
+    let _ = fs::remove_dir_all(
+        dirs::home_dir()
+            .ok_or(Error::NoHomeDir)?
+            .join(".xargo")
+    );
+    
+    Ok(())
+}
