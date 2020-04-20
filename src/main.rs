@@ -103,6 +103,7 @@ fn main() {
                 eprintln!("{}{}","An FTP Error Occurred: ".red(), ftp_err)
             }
             Error::NoHomeDir => eprintln!("{}", "No home directory could be found".red()),
+            Error::NoPathFound => eprintln!("{}", "No environment variable PATH could be found.".red()),
             Error::CreateSwitchDirDenied
                 => eprintln!("{}", "Could not create $HOME/.switch".red()),
             Error::WriteIpDenied => eprintln!("{}", "Could not write IP to file".red()),

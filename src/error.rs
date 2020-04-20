@@ -5,6 +5,7 @@ pub enum Error {
     NoIpFound,
     BadIpAddr,
     NoHomeDir,
+    NoPathFound,
     CreateSwitchDirDenied,
     WriteIpDenied,
     //NoCargoToml,
