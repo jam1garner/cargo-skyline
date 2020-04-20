@@ -2,11 +2,26 @@ use std::process::{Command, Stdio};
 use cargo_metadata::Message;
 use crate::error::{Result, Error};
 use std::path::PathBuf;
+use std::env;
 use linkle::format::nxo::NxoFile;
 
 const XARGO_GIT_URL: &str = "https://github.com/jam1garner/xargo";
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
+    // Ensure rust-lld is added to the PATH on Windows
+    if cfg!(windows){
+        let home_dir = dirs::home_dir().ok_or(Error::NoHomeDir)?.join(r".rustup\toolchains\nightly-2020-04-10-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\bin");
+
+        let paths = env::var_os("PATH").ok_or(Error::NoPathFound)?;
+        
+        let mut split_paths = env::split_paths(&paths).collect::<Vec<_>>();
+        split_paths.push(home_dir);
+
+        let new_path = env::join_paths(split_paths).unwrap();
+
+        env::set_var("PATH", &new_path);
+    }
+
     if !Command::new("xargo").stdout(Stdio::null()).status().map(|_| true).unwrap_or_default() {
         match Command::new("cargo")
                     .args(&["install", "--git", XARGO_GIT_URL, "--force"])
