@@ -5,6 +5,7 @@ use crate::error::{Error, Result};
 use std::path::Path;
 use colored::*;
 use std::path::PathBuf;
+use std::env::current_dir;
 
 fn replace(path: &str, find: &str, replace: &str) -> Result<()> {
     let temp = fs::read_to_string(path)?;
@@ -17,10 +18,34 @@ fn replace(path: &str, find: &str, replace: &str) -> Result<()> {
 const STD_GIT_URL: &str = "https://github.com/jam1garner/rust-std-skyline-squashed.git";
 const TEMPLATE_GIT_URL: &str = "https://github.com/ultimate-research/skyline-rs-template.git";
 
+fn output_expected_tree(plugin_name: &str) -> Result<()> {
+    let current_dir = current_dir()?;
+    let name = if let Some(x) = current_dir.file_name() {
+        x.to_string_lossy()
+    } else {
+        return Ok(());
+    };
+
+    println!("\nMake sure '{}' is an acceptable plugins workspace folder.", name.bright_blue());
+    println!("This should likely be an empty folder that only contains plugins");
+    println!("\nExpected resulting directory structure:");
+    println!("{}", name.bright_blue());
+    println!("├── {}", "rust-std-skyline-squashed".bright_blue());
+    println!("└── {}", plugin_name.bright_blue());
+    println!("    ├── {}", "src".bright_blue());
+    println!("    │   └── {{...}}");
+    println!("    └── Cargo.toml");
+    println!("");
+    println!("Setup workspace?");
+
+    Ok(())
+}
+
 pub fn new_plugin(name: String) -> Result<()> {
     if !Path::new("rust-std-skyline-squashed").exists() {
         println!("Not setup to be a plugin folder, Set it up as one? This will take up to 1 GB of space.");
         println!("Note: this can be shared between all the plugins in the folder.");
+        let _ = output_expected_tree(&name);
         print!("\n(y/n) ");
 
         let _ = std::io::stdout().lock().flush();
