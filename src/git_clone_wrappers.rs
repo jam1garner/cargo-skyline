@@ -76,7 +76,7 @@ pub fn new_plugin(name: String) -> Result<()> {
     let status =
         Command::new("git")
             .args(&[
-                "clone", TEMPLATE_GIT_URL, &name
+                "clone", "-b", "master", "--single-branch", TEMPLATE_GIT_URL, &name
             ])
             .stdout(std::process::Stdio::piped())
             .status()
