@@ -6,13 +6,17 @@ use crate::tcp_listen;
 use crate::ip_addr::{get_ip, verify_ip};
 use colored::*;
 
-fn connect(ip: IpAddr) -> Result<FtpClient> {
-    println!("Connecting to ip '{}'...", ip);
+fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
+    if print {
+        println!("Connecting to ip '{}'...", ip);
+    }
 
     let mut client = FtpClient::connect(ip)?;
     client.login("anonymous", "anonymous")?;
 
-    println!("{}", "Connected!".green());
+    if print {
+        println!("{}", "Connected!".green());
+    }
 
     Ok(client)
 }
@@ -35,7 +39,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
 
     let ip = verify_ip(get_ip(ip)?)?;
 
-    let mut client = connect(ip)?;
+    let mut client = connect(ip, true)?;
 
     let metadata = cargo_info::get_metadata()?;
 
@@ -67,4 +71,25 @@ pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bo
     install(ip.clone(), title_id, release)?;
     
     tcp_listen::listen(ip)
+}
+
+pub fn list(ip: Option<String>, title_id: Option<String>) -> Result<()> {
+    let ip = verify_ip(get_ip(ip)?)?;
+
+    let mut client = connect(ip, false)?;
+
+    let metadata = cargo_info::get_metadata()?;
+
+    let title_id =
+            title_id.or_else(|| metadata.title_id)
+                    .ok_or(Error::NoTitleId)?;
+
+    println!("{}", client.ls(
+        Some(&(
+            get_game_path(&title_id)
+            + "/romfs/skyline/plugins"
+        ))
+    )?);
+
+    Ok(())
 }

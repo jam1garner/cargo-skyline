@@ -71,6 +71,17 @@ enum SubCommands {
         #[structopt(short, long)]
         ip: Option<String>,
     },
+    #[structopt(about = "List the files in the plugin directory for the given game")]
+    List {
+        #[structopt(short, long)]
+        ip: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
+        )]
+        title_id: Option<String>
+    },
 }
 
 #[derive(StructOpt)]
@@ -93,6 +104,7 @@ fn main() {
         New { name } => git_clone_wrappers::new_plugin(name),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),
+        List { ip, title_id } => installer::list(ip, title_id),
     };
 
     if let Err(err) = result {

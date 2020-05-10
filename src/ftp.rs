@@ -41,7 +41,7 @@ impl FtpClient {
         let mut line = String::new();
         self.tcp.read_line(&mut line)
             .map_err(|e| FtpError::Io(e))?;
-        //println!("{}", line);
+
         Ok(line)
     }
 
@@ -88,7 +88,7 @@ impl FtpClient {
         self.expect_success()
     }
 
-    pub fn open_passive_channel(&mut self) -> Result<TcpStream> {
+    pub fn open_passive_channel(&mut self) -> Result<(String, TcpStream)> {
         self.send("PASV")?;
         
         let ip = match self.next()? {
@@ -107,10 +107,32 @@ impl FtpClient {
         } else {
             let ip: String = ip[0..4].join(".") + ":" + &((int(ip[4])? << 8) + int(ip[5])?).to_string();
 
-            println!("Transferring data over {}...", ip);
+            let stream = TcpStream::connect(&ip)?;
 
-            Ok(TcpStream::connect(&ip)?)
+            Ok((ip, stream))
         }
+    }
+
+    pub fn ls(&mut self, dir: Option<&str>) -> Result<String> {
+        let mut channel = self.open_passive_channel()?.1;
+
+        if let Some(dir) = dir {
+            self.change_dir(dir)?;
+        }
+
+        self.send("LIST")?;
+
+        let mut string = String::new();
+
+        channel.read_to_string(&mut string)?;
+        
+        Ok(string)
+    }
+
+    pub fn change_dir<S: AsRef<str>>(&mut self, path: S) -> Result<()> {
+        self.send(format!("CWD {}", path.as_ref()))?;
+
+        self.expect_success()
     }
 
     pub fn put<S: AsRef<str>, D: AsRef<[u8]>>(&mut self, path: S, file: D) -> Result<()> {
@@ -123,7 +145,9 @@ impl FtpClient {
         //self.next_line()?);
         self.expect_success()?;
 
-        let mut channel = self.open_passive_channel()?;
+        let (ip, mut channel) = self.open_passive_channel()?;
+
+        println!("Transferring data over {}...", ip);
         
         self.send(format!("STOR {}", path.as_ref()))?;
 

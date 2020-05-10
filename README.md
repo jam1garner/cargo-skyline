@@ -3,7 +3,7 @@
 A cargo subcommand for making it easier to work with (and make) [Skyline](https://github.com/ultimate-research/skyline-rs) plugins.
 
 ```
-cargo-skyline 1.3.0
+cargo-skyline 1.4.0
 
 USAGE:
     cargo skyline <SUBCOMMAND>
@@ -16,6 +16,7 @@ SUBCOMMANDS:
     build         Build the current plugin as an NRO
     help          Prints this message or the help of the given subcommand(s)
     install       Build the current plugin and install to a switch over FTP
+    list          List the files in the plugin directory for the 
     listen        Listen for logs being output from a switch running skyline at the given ip
     new           Create a new plugin from a template
     run           Install the current plugin and listen for skyline logging
