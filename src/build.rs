@@ -7,22 +7,36 @@ use linkle::format::nxo::NxoFile;
 
 const XARGO_GIT_URL: &str = "https://github.com/jam1garner/xargo";
 
+fn get_toolchain_bin_dir() -> Result<PathBuf> {
+    let rel_path = if cfg!(windows) {
+        r".rustup\toolchains\*\lib\rustlib\*\bin\"
+    } else {
+        r".rustup/toolchains/*/lib/rustlib/*/bin/"
+    };
+
+    Ok(
+        dirs::home_dir()
+            .ok_or(Error::NoHomeDir)?
+            .join(rel_path)
+    )
+}
+
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
     // Ensure rust-lld is added to the PATH on Windows
-    if cfg!(windows){
-        let home_dir = dirs::home_dir().ok_or(Error::NoHomeDir)?.join(r".rustup\toolchains\nightly-2020-04-10-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\bin");
+    if !Command::new("rust-lld").stdout(Stdio::null()).status().is_ok() {
+        let toolchain_bin_dir = get_toolchain_bin_dir()?;
 
         let paths = env::var_os("PATH").ok_or(Error::NoPathFound)?;
         
         let mut split_paths = env::split_paths(&paths).collect::<Vec<_>>();
-        split_paths.push(home_dir);
+        split_paths.push(toolchain_bin_dir);
 
         let new_path = env::join_paths(split_paths).unwrap();
 
         env::set_var("PATH", &new_path);
     }
 
-    if !Command::new("xargo").stdout(Stdio::null()).status().map(|_| true).unwrap_or_default() {
+    if !Command::new("xargo").stdout(Stdio::null()).status().is_ok() {
         match Command::new("cargo")
                     .args(&["install", "--git", XARGO_GIT_URL, "--force"])
                     .stdout(Stdio::piped())
