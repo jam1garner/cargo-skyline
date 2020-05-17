@@ -18,7 +18,7 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
         dirs::home_dir()
             .ok_or(Error::NoHomeDir)?
             .join(rel_path)
-    )c
+    )
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
