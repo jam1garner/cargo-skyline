@@ -23,7 +23,7 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
     // Ensure rust-lld is added to the PATH on Windows
-    if !Command::new("rust-lld").stdout(Stdio::null()).status().is_ok() {
+    if !Command::new("rust-lld").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() {
         let toolchain_bin_dir = get_toolchain_bin_dir()?;
 
         let paths = env::var_os("PATH").ok_or(Error::NoPathFound)?;
