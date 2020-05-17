@@ -1,7 +1,8 @@
 use structopt::StructOpt;
-use error::Error;
-use colored::*;
+use error::{Error, Result};
+use std::process::Command;
 use std::path::PathBuf;
+use colored::*;
 
 mod installer;
 mod error;
@@ -82,6 +83,14 @@ enum SubCommands {
         )]
         title_id: Option<String>
     },
+    #[structopt(about = "Update cargo-skyline command")]
+    SelfUpdate {
+        #[structopt(short, long, default_value = "https://github.com/jam1garner/cargo-skyline")]
+        git: String,
+
+        #[structopt(short, long)]
+        from_master: bool,
+    },
 }
 
 #[derive(StructOpt)]
@@ -105,6 +114,7 @@ fn main() {
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id } => installer::list(ip, title_id),
+        SelfUpdate { from_master, git } => self_update(from_master, git),
     };
 
     if let Err(err) = result {
@@ -133,4 +143,22 @@ fn main() {
 
         std::process::exit(1);
     }
+}
+
+fn self_update(from_master: bool, git: String) -> Result<()> {
+    let mut args = vec!["install", "--force"];
+
+    if from_master {
+        args.push("--git");
+        args.push(&git);
+    } else {
+        args.push("cargo-skyline");
+    }
+
+    Command::new("cargo")
+        .args(&args)
+        .status()
+        .unwrap();
+
+    Ok(())
 }
