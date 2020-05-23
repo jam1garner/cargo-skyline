@@ -54,10 +54,22 @@ pub fn package(skyline_url: &str, title_id: Option<&str>, out_path: &str) -> Res
     zip.start_file(get_plugin_nro_path(title_id, plugin_name.as_ref()), Default::default())?;
     zip.write_all(&plugin_data)?;
 
+    // main.npdm
+    let main_npdm =
+        metadata.npdm_path
+            .as_ref()
+            .map(|path| fs::read(path))
+            .transpose()?;
+    let main_npdm =
+        main_npdm
+            .as_ref()
+            .unwrap_or(&exefs.main_npdm);
     zip.start_file(get_npdm_path(title_id), Default::default())?;
-    zip.write_all(&exefs.main_npdm)?;
+    zip.write_all(main_npdm)?;
 
-    zip.start_file(get_subsdk_path(title_id), Default::default())?;
+    // subsdk
+    let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk1");
+    zip.start_file(get_subsdk_path(title_id, subsdk_name), Default::default())?;
     zip.write_all(&exefs.subsdk1)?;
 
     Ok(())
