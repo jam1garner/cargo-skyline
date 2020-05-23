@@ -5,7 +5,10 @@ use crate::ftp::FtpClient;
 use crate::tcp_listen;
 use crate::ip_addr::{get_ip, verify_ip};
 use crate::game_paths::{get_game_path, get_plugin_path};
+use temp_git::TempGitDir;
 use colored::*;
+
+mod temp_git;
 
 fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
     if print {
@@ -56,6 +59,16 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
         &format!("{}/{}", dir_path, nro_name),
         std::fs::read(nro_path)?
     )?;
+
+    Ok(())
+}
+
+pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
+    let temp_dir = TempGitDir::clone_to_current_dir(git)?;
+
+    install(ip, title_id, release)?;
+
+    temp_dir.delete();
 
     Ok(())
 }

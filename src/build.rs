@@ -52,12 +52,15 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
 
     let current_dir = std::env::current_dir()?;
 
+    println!("{}", current_dir.display());
+
     let mut command =
         Command::new("xargo")
             .args(&[
                 "build", "--message-format=json-diagnostic-rendered-ansi", "--color", "always"
             ])
             .args(args)
+            .current_dir(env::current_dir()?)
             // Needed to make crates.io crates use the custom target
             .env("RUST_TARGET_PATH", current_dir)
             .stdout(Stdio::piped())

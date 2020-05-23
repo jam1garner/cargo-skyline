@@ -45,7 +45,13 @@ enum SubCommands {
             short, long,
             about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
         )]
-        title_id: Option<String>
+        title_id: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Install a project from a git url to the switch"
+        )]
+        git: Option<String>,
     },
     #[structopt(about = "Set the IP address of the switch to install to")]
     SetIp {
@@ -134,7 +140,11 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug } => installer::install(ip, title_id, !debug),
+        Install { ip, title_id, debug, git } => if let Some(git) = git {
+            installer::from_git(&git, ip, title_id, !debug)
+        } else {
+            installer::install(ip, title_id, !debug)
+        },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
         Build { args, release } => build::build(args, release),
