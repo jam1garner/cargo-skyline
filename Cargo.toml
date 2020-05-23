@@ -1,6 +1,6 @@
 [package]
 name = "cargo-skyline"
-version = "1.6.0"
+version = "1.6.1"
 authors = ["jam1garner <jam1.mcleod@hotmail.com>"]
 edition = "2018"
 description = "A cargo subcommand for working with Skyline plugins written in Rust"
@@ -18,5 +18,5 @@ cargo_metadata = "0.9.1"
 serde_json = "1.0.51"
 linkle = "0.2.10" 
 glob = "0.3"
-reqwest = { version = "0.10", features = ["blocking"] }
+attohttpc = "0.13"
 zip = "0.5.5"

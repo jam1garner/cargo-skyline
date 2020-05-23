@@ -14,8 +14,11 @@ pub struct Exefs {
 
 // TODO: Cache exefs to disk, figure out some strategy for cache invalidation?
 pub fn get_exefs(url: &str) -> Result<Exefs> {
-    let zip_response = reqwest::blocking::get(url).map_err(|_| Error::DownloadError)?;
-    let zip_reader = Cursor::new(Read::bytes(zip_response).collect::<StdResult<Vec<_>, _>>()?);
+    let zip_reader = Cursor::new(
+        attohttpc::get(url).send()
+            .map_err(|_| Error::DownloadError)?
+            .bytes().map_err(|_| Error::DownloadError)?
+    );
 
     let mut zip = ZipArchive::new(zip_reader).unwrap();
 
