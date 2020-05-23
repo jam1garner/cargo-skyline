@@ -16,7 +16,6 @@ fn replace(path: &str, find: &str, replace: &str) -> Result<()> {
 }
 
 const STD_GIT_URL: &str = "https://github.com/jam1garner/rust-std-skyline-squashed.git";
-const TEMPLATE_GIT_URL: &str = "https://github.com/ultimate-research/skyline-rs-template.git";
 
 fn output_expected_tree(plugin_name: &str) -> Result<()> {
     let current_dir = current_dir()?;
@@ -41,7 +40,7 @@ fn output_expected_tree(plugin_name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn new_plugin(name: String) -> Result<()> {
+pub fn new_plugin(name: String, git_url: String) -> Result<()> {
     if !Path::new("rust-std-skyline-squashed").exists() {
         println!("Not setup to be a plugin folder, Set it up as one? This will take up to 1 GB of space.");
         println!("Note: this can be shared between all the plugins in the folder.");
@@ -76,7 +75,7 @@ pub fn new_plugin(name: String) -> Result<()> {
     let status =
         Command::new("git")
             .args(&[
-                "clone", "-b", "master", "--single-branch", TEMPLATE_GIT_URL, &name
+                "clone", "-b", "master", "--single-branch", &git_url, &name
             ])
             .stdout(std::process::Stdio::piped())
             .status()

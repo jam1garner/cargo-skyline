@@ -7,17 +7,25 @@ use colored::*;
 mod installer;
 mod error;
 mod cargo_info;
+mod package;
 mod build;
 mod ftp;
 mod tcp_listen;
 mod ip_addr;
 mod git_clone_wrappers;
+mod game_paths;
 
 #[derive(StructOpt)]
 enum SubCommands {
     #[structopt(about = "Create a new plugin from a template")]
     New {
         name: String,
+
+        #[structopt(
+            short, long,
+            default_value = "https://github.com/ultimate-research/skyline-rs-template.git"
+        )]
+        template_git: String,
     },
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
@@ -91,6 +99,27 @@ enum SubCommands {
         #[structopt(short, long)]
         from_master: bool,
     },
+    #[structopt(about = "Package plugin and latest Skyline into a zip file to prepare it for release")]
+    Package {
+        #[structopt(
+            short, long,
+            default_value = "https://github.com/shadowninja108/Skyline/releases/download/beta/Skyline.zip"
+        )]
+        skyline_release: String,
+
+        #[structopt(
+            short, long,
+            about = "Title ID of the game to package the plugin for",
+        )]
+        title_id: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Path to output zip to",
+            default_value = "target/release.zip"
+        )]
+        out_path: String,
+    },
 }
 
 #[derive(StructOpt)]
@@ -110,11 +139,13 @@ fn main() {
         ShowIp => ip_addr::show_ip(),
         Build { args, release } => build::build(args, release),
         Run { ip, title_id, debug} => installer::install_and_run(ip, title_id, !debug),
-        New { name } => git_clone_wrappers::new_plugin(name),
+        New { name, template_git } => git_clone_wrappers::new_plugin(name, template_git),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id } => installer::list(ip, title_id),
         SelfUpdate { from_master, git } => self_update(from_master, git),
+        Package { skyline_release, title_id, out_path }
+            => package::package(&skyline_release, title_id.as_deref(), &out_path),
     };
 
     if let Err(err) = result {
@@ -139,6 +170,8 @@ fn main() {
             Error::IoError(err) => eprintln!("{}{}", "IoError: ".red(), err),
             Error::FailUpdateStd => eprintln!("{}", "Could not update std due to a git-related failure".red()),
             Error::NoStdFound => eprintln!("{}", "Could not find stdlib. Make sure you're inside of either your workspace or a plugin folder".red()),
+            Error::DownloadError => eprintln!("{}", "Failed to download latest release of Skyline. An internet connection is required.".red()),
+            Error::ZipError => eprintln!("{}", "Failed to read Skyline release zip. Either corrupted or missing files.".red()),
         }
 
         std::process::exit(1);

@@ -4,6 +4,7 @@ use crate::{build, cargo_info};
 use crate::ftp::FtpClient;
 use crate::tcp_listen;
 use crate::ip_addr::{get_ip, verify_ip};
+use crate::game_paths::{get_game_path, get_plugin_path};
 use colored::*;
 
 fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
@@ -19,14 +20,6 @@ fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
     }
 
     Ok(client)
-}
-
-fn get_plugin_path(title_id: &str) -> String {
-    format!("/atmosphere/contents/{}/romfs/skyline/plugins", title_id)
-}
-
-fn get_game_path(title_id: &str) -> String {
-    format!("/atmosphere/contents/{}", title_id)
 }
 
 pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {

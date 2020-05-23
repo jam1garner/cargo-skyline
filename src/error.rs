@@ -15,6 +15,8 @@ pub enum Error {
     FailWriteNro,
     NoStdFound,
     FailUpdateStd,
+    DownloadError,
+    ZipError,
     IoError(io::Error),
     FtpError(FtpError),
     CargoError(cargo_metadata::Error),
@@ -42,5 +44,11 @@ impl From<cargo_metadata::Error> for Error {
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
         Self::IoError(err)
+    }
+}
+
+impl From<zip::result::ZipError> for Error {
+    fn from(_: zip::result::ZipError) -> Self {
+        Self::ZipError
     }
 }
