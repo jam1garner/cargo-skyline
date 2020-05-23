@@ -1,5 +1,6 @@
 use std::io;
 use crate::ftp::FtpError;
+use colored::*;
 
 pub enum Error {
     NoIpFound,
@@ -17,6 +18,7 @@ pub enum Error {
     FailUpdateStd,
     DownloadError,
     ZipError,
+    NoNpdmFileFound,
     IoError(io::Error),
     FtpError(FtpError),
     CargoError(cargo_metadata::Error),
@@ -28,6 +30,14 @@ pub type Result<T> = core::result::Result<T, Error>;
 pub static NO_IP: &str = "\n\nNo ip address found. Configure using `cargo skyline set-ip [addr]`, set using the SWITCH_IP environment variable, or pass as an argument.";
 pub static BAD_IP_ADDR: &str = "\n\nCould not parse IP address: likely is not correctly formatted.";
 
+pub fn no_title_id() {
+    eprintln!(concat!(
+        "{}: Unable to install as no title id could be found to install to.",
+        "Set in Cargo.toml in the `package.metadata.skyline.titleid` key or pass via `--titleid [id]`"),
+        "ERROR".red()
+    );
+    eprintln!("\n{}:\n\n[package.metadata.skyline]\ntitleid = \"01006A800016E000\"\n\n", "Example".bright_blue());
+}
 
 impl From<FtpError> for Error {
     fn from(err: FtpError) -> Self {

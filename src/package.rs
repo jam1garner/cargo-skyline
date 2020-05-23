@@ -1,3 +1,4 @@
+use colored::*;
 use crate::game_paths::{get_subsdk_path, get_npdm_path, get_plugin_nro_path};
 use crate::error::{Error, Result};
 use crate::cargo_info;
@@ -59,11 +60,18 @@ pub fn package(skyline_url: &str, title_id: Option<&str>, out_path: &str) -> Res
         metadata.npdm_path
             .as_ref()
             .map(|path| fs::read(path))
-            .transpose()?;
+            .transpose()
+            .map_err(|_| Error::NoNpdmFileFound)?;
     let main_npdm =
         main_npdm
             .as_ref()
-            .unwrap_or(&exefs.main_npdm);
+            .unwrap_or_else(|| {
+                eprintln!("\n{}: defaulting to the npdm for Smash Ultimate.", "Warning".yellow());
+                eprintln!("{}: To specify a custom npdm add the following to your Cargo.toml:", "NOTE".bright_blue());
+                eprintln!("\n{}\n", "[package.metadata.skyline]".bright_blue());
+                eprintln!("{}\n", "custom-npdm = \"path/to/your.npdm\"".bright_blue());
+                &exefs.main_npdm
+            });
     zip.start_file(get_npdm_path(title_id), Default::default())?;
     zip.write_all(main_npdm)?;
 
@@ -71,6 +79,8 @@ pub fn package(skyline_url: &str, title_id: Option<&str>, out_path: &str) -> Res
     let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk1");
     zip.start_file(get_subsdk_path(title_id, subsdk_name), Default::default())?;
     zip.write_all(&exefs.subsdk1)?;
+
+    println!("Finished building zip at '{}'", out_path);
 
     Ok(())
 }

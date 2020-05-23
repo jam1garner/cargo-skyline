@@ -150,28 +150,29 @@ fn main() {
 
     if let Err(err) = result {
         match err {
-            Error::NoIpFound => eprintln!("{}", error::NO_IP.red()),
-            Error::BadIpAddr => eprintln!("{}", error::BAD_IP_ADDR.red()),
+            Error::NoIpFound => eprintln!("{}: {}", "ERROR".red(), error::NO_IP),
+            Error::BadIpAddr => eprintln!("{}: {}", "ERROR".red(), error::BAD_IP_ADDR),
             Error::FtpError(ftp_err) => {
                 eprintln!("{}{}","An FTP Error Occurred: ".red(), ftp_err)
             }
-            Error::NoHomeDir => eprintln!("{}", "No home directory could be found".red()),
-            Error::NoPathFound => eprintln!("{}", "No environment variable PATH could be found.".red()),
+            Error::NoHomeDir => eprintln!("{}: No home directory could be found", "ERROR".red()),
+            Error::NoPathFound => eprintln!("{}: No environment variable PATH could be found.", "ERROR".red()),
             Error::CreateSwitchDirDenied
-                => eprintln!("{}", "Could not create $HOME/.switch".red()),
-            Error::WriteIpDenied => eprintln!("{}", "Could not write IP to file".red()),
+                => eprintln!("{}: Could not create $HOME/.switch", "ERROR".red()),
+            Error::WriteIpDenied => eprintln!("{}: Could not write IP to file", "ERROR".red()),
             //Error::NoCargoToml => eprintln!("{}", "No Cargo.toml could be found. Make sure you are within your plugin directory.".red()),
             //Error::BadCargoToml => eprintln!("{}", "Cargo.toml is formatted incorrectly.".red()),
-            Error::NoTitleId => eprintln!("{}\n\nExample:\n\n[package.metadata.skyline]\ntitleid = \"01006A800016E000\"\n\n", "Unable to install as no title id could be found to install to. Set in Cargo.toml in the `package.metadata.skyline.titleid` key or pass via `--titleid [id]`".red()),
+            Error::NoTitleId => error::no_title_id(),
             Error::FailParseCargoStream => eprintln!("{}", "Unable to parse cargo output stream"),
             Error::CargoError(err) => eprintln!("{}{}", "CargoError: ".red(), err),
             Error::ExitStatus(code) => std::process::exit(code),
-            Error::FailWriteNro => eprintln!("{}", "Unable to convert file from ELF to NRO".red()),
+            Error::FailWriteNro => eprintln!("{}: Unable to convert file from ELF to NRO", "ERROR".red()),
             Error::IoError(err) => eprintln!("{}{}", "IoError: ".red(), err),
-            Error::FailUpdateStd => eprintln!("{}", "Could not update std due to a git-related failure".red()),
-            Error::NoStdFound => eprintln!("{}", "Could not find stdlib. Make sure you're inside of either your workspace or a plugin folder".red()),
-            Error::DownloadError => eprintln!("{}", "Failed to download latest release of Skyline. An internet connection is required.".red()),
-            Error::ZipError => eprintln!("{}", "Failed to read Skyline release zip. Either corrupted or missing files.".red()),
+            Error::FailUpdateStd => eprintln!("{}: Could not update std due to a git-related failure", "ERROR".red()),
+            Error::NoStdFound => eprintln!("{}: Could not find stdlib. Make sure you're inside of either your workspace or a plugin folder", "ERROR".red()),
+            Error::DownloadError => eprintln!("{}: Failed to download latest release of Skyline. An internet connection is required.", "ERROR".red()),
+            Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", "ERROR".red()),
+            Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", "ERROR".red()),
         }
 
         std::process::exit(1);
