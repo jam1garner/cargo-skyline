@@ -3,7 +3,7 @@
 A cargo subcommand for making it easier to work with (and make) [Skyline](https://github.com/ultimate-research/skyline-rs) plugins.
 
 ```
-cargo-skyline 1.5.0
+cargo-skyline 1.6.0
 
 USAGE:
     cargo skyline <SUBCOMMAND>
@@ -19,6 +19,7 @@ SUBCOMMANDS:
     list           List the files in the plugin directory for the given game
     listen         Listen for logs being output from a switch running skyline at the given ip
     new            Create a new plugin from a template
+    package        Package plugin and latest Skyline into a zip file to prepare it for release
     run            Install the current plugin and listen for skyline logging
     self-update    Update cargo-skyline command
     set-ip         Set the IP address of the switch to install to
@@ -34,7 +35,7 @@ SUBCOMMANDS:
 ## Installation
 
 ```sh
-cargo install --git https://github.com/jam1garner/cargo-skyline
+cargo install cargo-skyline
 ```
 
 ## Example usage

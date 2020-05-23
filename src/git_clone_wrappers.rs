@@ -82,7 +82,7 @@ pub fn new_plugin(name: String, git_url: String) -> Result<()> {
             .unwrap();
     
     if status.success() {
-        let paths = &["Cargo.toml", "src/lib.rs"];
+        let paths = &["Cargo.toml", "src/lib.rs", ".github/workflows/rust_build.yml"];
 
         for path in paths {
             replace(&format!("{}/{}", name, path), "skyline_rs_template", &name)?;
