@@ -4,6 +4,7 @@ use std::io::{self, BufReader};
 use std::time::Duration;
 use std::fmt;
 
+#[derive(Debug)]
 pub enum FtpError {
     Io(io::Error),
     ParseFail,
@@ -42,7 +43,15 @@ impl FtpClient {
         self.tcp.read_line(&mut line)
             .map_err(|e| FtpError::Io(e))?;
 
+        //println!("<FTP> {}", line.trim_end_matches("\n"));
         Ok(line)
+    }
+
+    pub fn clear_status(&mut self) {
+        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(20)));
+        let mut dump = vec![];
+        let _ = self.tcp.read_to_end(&mut dump);
+        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(500)));
     }
 
     pub fn login(&mut self, user: &str, pass: &str) -> Result<&mut Self> {
@@ -53,7 +62,7 @@ impl FtpClient {
     pub fn expect_success(&mut self) -> Result<()> {
         let (num, _) = self.next()?;
 
-        if (200..299).contains(&num) {
+        if (200..299).contains(&num) || num == 150 {
             Ok(())
         } else {
             //println!("{} {}", num, text);
@@ -62,6 +71,7 @@ impl FtpClient {
     }
 
     pub fn send<D: std::fmt::Display>(&mut self, string: D) -> Result<()> {
+        //println!("[FTP] {}", string);
         write!(self.tcp.get_mut(), "{}\n", string)?;
 
         Ok(())
@@ -89,15 +99,19 @@ impl FtpClient {
     }
 
     pub fn open_passive_channel(&mut self) -> Result<(String, TcpStream)> {
+        self.clear_status();
         self.send("PASV")?;
         
-        let ip = match self.next()? {
-            (status, ip) if (200..299).contains(&status) => {
-                ip
-            }
-            (status, _) => {
-                return Err(FtpError::UnexpectedStatus(status))
-            }
+        let ip = loop {
+            match self.next()? {
+                (227, ip) => {
+                    break ip
+                }
+                (status, _) if !(200..299).contains(&status) => {
+                    return Err(FtpError::UnexpectedStatus(status))
+                }
+                _ => continue
+            };
         };
 
         let ip: Vec<_> = ip.split(",").map(|x| x.trim()).collect();
@@ -129,6 +143,28 @@ impl FtpClient {
         Ok(string)
     }
 
+    pub fn file_exists<S: AsRef<str>>(&mut self, path: S) -> Result<bool> {
+        self.clear_status();
+        let mut channel = self.open_passive_channel().unwrap().1;
+
+        self.send(format!("LIST {}", path.as_ref()))?;
+
+        if self.expect_success().is_err() {
+            return Ok(false);
+        }
+
+        let _ = self.next_line().unwrap();
+
+        // Return true if stream is non-empty, i.e. the listing contains an item
+        Ok(
+            if channel.read(&mut [0; 2][..])? > 1 {
+                true
+            } else {
+                false
+            }
+        )
+    }
+
     pub fn change_dir<S: AsRef<str>>(&mut self, path: S) -> Result<()> {
         self.send(format!("CWD {}", path.as_ref()))?;
 
@@ -136,6 +172,7 @@ impl FtpClient {
     }
 
     pub fn put<S: AsRef<str>, D: AsRef<[u8]>>(&mut self, path: S, file: D) -> Result<()> {
+        self.clear_status();
         self.send(format!("DELE {}", path.as_ref()))?;
 
         let _ = self.next_line()?;
@@ -145,16 +182,18 @@ impl FtpClient {
         //self.next_line()?);
         self.expect_success()?;
 
-        let (ip, mut channel) = self.open_passive_channel()?;
+        let (_ip, mut channel) = self.open_passive_channel()?;
 
-        println!("Transferring data over {}...", ip);
+        //println!("Transferring data over {}...", ip);
         
         self.send(format!("STOR {}", path.as_ref()))?;
 
         channel.write_all(file.as_ref())?;
 
         std::thread::sleep(Duration::from_millis(500));
-
+        
+        let _ = self.next_line()?;
+        //let _ = dbg!(self.next_line()?);
         Ok(())
     }
 }

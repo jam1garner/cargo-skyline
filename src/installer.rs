@@ -25,6 +25,23 @@ fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
     Ok(client)
 }
 
+fn warn_if_old_skyline_subsdk(client: &mut FtpClient, subsdk_base: &str) {
+    for i in 1..=8 {
+        if client.file_exists(format!("{}{}", subsdk_base, i)).unwrap_or(false) {
+            println!("{}: An old install of skyline is detected, this may cause problems.", "WARNING".yellow());
+            println!("Path: \"{}{}\"\n", subsdk_base, i);
+            return;
+        }
+    }
+}
+
+fn parse_tid(tid: &str) -> u64 {
+    u64::from_str_radix(tid, 16).expect("Invalid Title ID")
+}
+
+static SKYLINE_URL: &str = "https://github.com/shadowninja108/Skyline/releases/download/beta/Skyline.zip";
+static TEMPLATE_NPDM: &[u8] = include_bytes!("template.npdm");
+
 pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
     let args = if release {
         vec![String::from("--release")]
@@ -50,10 +67,31 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs"));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline"));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
+    let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
+
+    warn_if_old_skyline_subsdk(&mut client, &(get_game_path(&title_id) + "/exefs/subsdk"));
+
+    // Ensure skyline is installed if it doesn't exist
+    let subsdk_path = get_game_path(&title_id) + "/exefs/subsdk9";
+    if !client.file_exists(&subsdk_path).unwrap_or(false){
+        println!("Skyline subsdk not installed for the given title, downloading...");
+        let exefs = crate::package::get_exefs(SKYLINE_URL)?;
+        println!("Installing over subsdk9...");
+        client.put(&subsdk_path, exefs.subsdk1)?;
+    }
+
+    let npdm_path = get_game_path(&title_id) + "/exefs/main.npdm";
+    if !client.file_exists(&npdm_path).unwrap_or(false) {
+        println!("Skyline npdm not installed for the given title, generating and installing...");
+        client.put(&npdm_path, [
+            &TEMPLATE_NPDM[..0x340],
+            &parse_tid(&title_id).to_le_bytes()[..],
+            &TEMPLATE_NPDM[0x348..]
+        ].concat())?;
+    }
 
     let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;
 
-    println!("Setting binary mode...");
     println!("Transferring file...");
     client.put(
         &format!("{}/{}", dir_path, nro_name),
