@@ -42,6 +42,14 @@ fn parse_tid(tid: &str) -> u64 {
 static SKYLINE_URL: &str = "https://github.com/shadowninja108/Skyline/releases/download/beta/Skyline.zip";
 static TEMPLATE_NPDM: &[u8] = include_bytes!("template.npdm");
 
+pub fn generate_npdm(tid: &str) -> Vec<u8> {
+    [
+        &TEMPLATE_NPDM[..0x340],
+        &parse_tid(tid).to_le_bytes()[..],
+        &TEMPLATE_NPDM[0x348..]
+    ].concat()
+}
+
 pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
     let args = if release {
         vec![String::from("--release")]
@@ -83,11 +91,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     let npdm_path = get_game_path(&title_id) + "/exefs/main.npdm";
     if !client.file_exists(&npdm_path).unwrap_or(false) {
         println!("Skyline npdm not installed for the given title, generating and installing...");
-        client.put(&npdm_path, [
-            &TEMPLATE_NPDM[..0x340],
-            &parse_tid(&title_id).to_le_bytes()[..],
-            &TEMPLATE_NPDM[0x348..]
-        ].concat())?;
+        client.put(&npdm_path, generate_npdm(&title_id))?;
     }
 
     let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;

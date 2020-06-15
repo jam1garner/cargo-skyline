@@ -62,15 +62,16 @@ pub fn package(skyline_url: &str, title_id: Option<&str>, out_path: &str) -> Res
             .map(|path| fs::read(path))
             .transpose()
             .map_err(|_| Error::NoNpdmFileFound)?;
+    let generated_npdm = crate::installer::generate_npdm(&title_id);
     let main_npdm =
         main_npdm
             .as_ref()
             .unwrap_or_else(|| {
-                eprintln!("\n{}: defaulting to the npdm for Smash Ultimate.", "Warning".yellow());
+                eprintln!("\n{}: defaulting to a generated NPDM.", "Warning".yellow());
                 eprintln!("{}: To specify a custom npdm add the following to your Cargo.toml:", "NOTE".bright_blue());
                 eprintln!("\n{}\n", "[package.metadata.skyline]".bright_blue());
                 eprintln!("{}\n", "custom-npdm = \"path/to/your.npdm\"".bright_blue());
-                &exefs.main_npdm
+                &generated_npdm
             });
     zip.start_file(get_npdm_path(title_id), Default::default())?;
     zip.write_all(main_npdm)?;
