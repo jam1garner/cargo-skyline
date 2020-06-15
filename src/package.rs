@@ -76,7 +76,7 @@ pub fn package(skyline_url: &str, title_id: Option<&str>, out_path: &str) -> Res
     zip.write_all(main_npdm)?;
 
     // subsdk
-    let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk1");
+    let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk9");
     zip.start_file(get_subsdk_path(title_id, subsdk_name), Default::default())?;
     zip.write_all(&exefs.subsdk1)?;
 
