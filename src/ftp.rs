@@ -118,12 +118,12 @@ impl FtpClient {
             };
         };
 
-        let ip: Vec<_> = ip.split(",").map(|x| x.trim()).collect();
+        let ip: Vec<_> = ip.split(",").map(String::from).map(|mut x| { x.retain(char::is_numeric); x }).collect();
 
         if ip.len() < 6 {
             Err(FtpError::ParseFail)
         } else {
-            let ip: String = ip[0..4].join(".") + ":" + &((int(ip[4])? << 8) + int(ip[5])?).to_string();
+            let ip: String = ip[0..4].join(".") + ":" + &((int(&ip[4])? << 8) + int(&ip[5])?).to_string();
 
             let stream = TcpStream::connect(&ip)?;
 
