@@ -43,7 +43,9 @@ impl FtpClient {
         self.tcp.read_line(&mut line)
             .map_err(|e| FtpError::Io(e))?;
 
-        //println!("<FTP> {}", line.trim_end_matches("\n"));
+        #[cfg(feature = "debug")] {
+            println!("<FTP> {}", line.trim_end_matches("\n"));
+        }
         Ok(line)
     }
 
@@ -71,7 +73,9 @@ impl FtpClient {
     }
 
     pub fn send<D: std::fmt::Display>(&mut self, string: D) -> Result<()> {
-        //println!("[FTP] {}", string);
+        #[cfg(feature = "debug")] {
+            println!("[FTP] {}", string);
+        }
         write!(self.tcp.get_mut(), "{}\n", string)?;
 
         Ok(())

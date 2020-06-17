@@ -246,7 +246,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-skyline"
-version = "1.9.1"
+version = "1.9.2"
 dependencies = [
  "attohttpc",
  "cargo_metadata 0.9.1",
