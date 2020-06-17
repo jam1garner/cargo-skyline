@@ -5,8 +5,6 @@ use std::path::PathBuf;
 use std::env;
 use linkle::format::nxo::NxoFile;
 
-const XARGO_GIT_URL: &str = "https://github.com/jam1garner/xargo";
-
 fn get_toolchain_bin_dir() -> Result<PathBuf> {
     let rel_path = if cfg!(windows) {
         r".rustup\toolchains\*\lib\rustlib\*\bin\"
@@ -38,7 +36,7 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
 
     if !Command::new("xargo").stdout(Stdio::null()).status().is_ok() {
         match Command::new("cargo")
-                    .args(&["install", "--git", XARGO_GIT_URL, "--force"])
+                    .args(&["install", "xargo", "--force"])
                     .stdout(Stdio::piped())
                     .status()
                     .unwrap()
@@ -51,6 +49,7 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
     }
 
     let current_dir = std::env::current_dir()?;
+    let xargo_dir = current_dir.join("..").join("rust-std-skyline-squashed").join("src");
 
     let mut command =
         Command::new("xargo")
@@ -61,6 +60,8 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
             .current_dir(env::current_dir()?)
             // Needed to make crates.io crates use the custom target
             .env("RUST_TARGET_PATH", current_dir)
+            // ensure xargo can find the rust std
+            .env("XARGO_RUST_SRC", xargo_dir)
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();
