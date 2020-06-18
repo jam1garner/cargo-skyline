@@ -12,11 +12,12 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
         r".rustup/toolchains/*/lib/rustlib/*/bin/"
     };
 
-    Ok(
-        dirs::home_dir()
-            .ok_or(Error::NoHomeDir)?
-            .join(rel_path)
-    )
+    let search_path =
+    dirs::home_dir()
+        .ok_or(Error::NoHomeDir)?
+        .join(rel_path);
+
+    Ok(glob::glob(search_path.to_str().expect("Toolchain path could not be converted to a &str")).unwrap().next().unwrap().unwrap())
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
