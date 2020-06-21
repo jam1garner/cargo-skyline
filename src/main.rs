@@ -126,6 +126,8 @@ enum SubCommands {
         )]
         out_path: String,
     },
+    #[structopt(about = "Update libraries for current plugin folder")]
+    Update,
 }
 
 #[derive(StructOpt)]
@@ -156,6 +158,7 @@ fn main() {
         SelfUpdate { from_master, git } => self_update(from_master, git),
         Package { skyline_release, title_id, out_path }
             => package::package(&skyline_release, title_id.as_deref(), &out_path),
+        Update => update()
     };
 
     if let Err(err) = result {
@@ -203,6 +206,14 @@ fn self_update(from_master: bool, git: String) -> Result<()> {
         .args(&args)
         .status()
         .unwrap();
+
+    Ok(())
+}
+
+fn update() -> Result<()> {
+    Command::new("xargo")
+        .arg("update")
+        .status()?;
 
     Ok(())
 }
