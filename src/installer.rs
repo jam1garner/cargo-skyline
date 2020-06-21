@@ -65,7 +65,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     let metadata = cargo_info::get_metadata()?;
 
     let title_id =
-            title_id.or_else(|| metadata.title_id)
+            title_id.or_else(|| metadata.title_id.clone())
                     .ok_or(Error::NoTitleId)?;
 
     let dir_path = get_plugin_path(&title_id);
@@ -92,6 +92,19 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     if !client.file_exists(&npdm_path).unwrap_or(false) {
         println!("Skyline npdm not installed for the given title, generating and installing...");
         client.put(&npdm_path, generate_npdm(&title_id))?;
+    }
+
+    for dep in &metadata.plugin_dependencies {
+        println!("Downloading dependency {}...", dep.name);
+        let dep_data =
+            attohttpc::get(&dep.url).send()
+                .map_err(|_| Error::DownloadError)?
+                .bytes().map_err(|_| Error::DownloadError)?;
+        println!("Installing dependency {}...", dep.name);
+        client.put(
+            &format!("{}/{}", dir_path, dep.name),
+            &dep_data
+        ).unwrap();
     }
 
     let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;
