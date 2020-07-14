@@ -95,16 +95,19 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     }
 
     for dep in &metadata.plugin_dependencies {
-        println!("Downloading dependency {}...", dep.name);
-        let dep_data =
-            attohttpc::get(&dep.url).send()
-                .map_err(|_| Error::DownloadError)?
-                .bytes().map_err(|_| Error::DownloadError)?;
-        println!("Installing dependency {}...", dep.name);
-        client.put(
-            &format!("{}/{}", dir_path, dep.name),
-            &dep_data
-        ).unwrap();
+        let dep_path = &format!("{}/{}", dir_path, dep.name);
+        if !client.file_exists(dep_path).unwrap_or(false) {
+            println!("Downloading dependency {}...", dep.name);
+            let dep_data =
+                attohttpc::get(&dep.url).send()
+                    .map_err(|_| Error::DownloadError)?
+                    .bytes().map_err(|_| Error::DownloadError)?;
+            println!("Installing dependency {}...", dep.name);
+            client.put(
+                dep_path,
+                &dep_data
+            ).unwrap();
+        }
     }
 
     let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;

@@ -184,7 +184,8 @@ impl FtpClient {
         self.send("TYPE I")?;
 
         //self.next_line()?);
-        self.expect_success()?;
+        //self.expect_success()?;
+        self.clear_status();
 
         let (_ip, mut channel) = self.open_passive_channel()?;
 
