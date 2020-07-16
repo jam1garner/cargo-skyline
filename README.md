@@ -20,7 +20,7 @@ SUBCOMMANDS:
     listen         Listen for logs being output from a switch running skyline at the given ip
     new            Create a new plugin from a template
     package        Package plugin and latest Skyline into a zip file to prepare it for release
-    rm             List the files in the plugin directory for the given game
+    rm             Delete a file from the plugin directory for the given game
     run            Install the current plugin and listen for skyline logging
     self-update    Update cargo-skyline command
     set-ip         Set the IP address of the switch to install to
