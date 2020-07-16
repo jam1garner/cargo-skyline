@@ -158,12 +158,21 @@ pub fn list(ip: Option<String>, title_id: Option<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn rm(ip: Option<String>, title_id: Option<String>, filename: String) -> Result<()> {
+pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>) -> Result<()> {
     let ip = verify_ip(get_ip(ip)?)?;
 
     let mut client = connect(ip, false)?;
 
     let metadata = cargo_info::get_metadata()?;
+
+    let current_dir = std::env::current_dir()?;
+    let plugin_name = if let Some(x) = current_dir.file_name() {
+        x.to_string_lossy()
+    } else {
+        return Ok(());
+    };
+
+    let filename = filename.unwrap_or(format!("lib{}.nro", plugin_name));
 
     let title_id =
             title_id.or_else(|| metadata.title_id)

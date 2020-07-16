@@ -114,7 +114,11 @@ enum SubCommands {
         )]
         title_id: Option<String>,
 
-        filename: String
+        #[structopt(
+            short, long,
+            about = "Filename of the plugin to delete",
+        )]
+        filename: Option<String>
     },
     #[structopt(about = "Update cargo-skyline command")]
     SelfUpdate {
