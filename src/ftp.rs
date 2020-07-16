@@ -179,9 +179,6 @@ impl FtpClient {
         self.clear_status();
         println!("{}", path);
         self.send(format!("DELE {}", path))?;
-        let _ = self.next_line()?;
-
-        self.send("TYPE I")?;
 
         Ok(())
     }
