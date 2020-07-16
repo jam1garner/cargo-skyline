@@ -157,3 +157,23 @@ pub fn list(ip: Option<String>, title_id: Option<String>) -> Result<()> {
 
     Ok(())
 }
+
+pub fn rm(ip: Option<String>, title_id: Option<String>, filename: String) -> Result<()> {
+    let ip = verify_ip(get_ip(ip)?)?;
+
+    let mut client = connect(ip, false)?;
+
+    let metadata = cargo_info::get_metadata()?;
+
+    let title_id =
+            title_id.or_else(|| metadata.title_id)
+                    .ok_or(Error::NoTitleId)?;
+
+    client.rm(
+            get_game_path(&title_id)
+            + "/romfs/skyline/plugins/"
+            + &filename
+    )?;
+
+    Ok(())
+}
