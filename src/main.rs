@@ -103,7 +103,7 @@ enum SubCommands {
         )]
         title_id: Option<String>
     },
-    #[structopt(about = "List the files in the plugin directory for the given game")]
+    #[structopt(about = "Delete a file in the plugin directory for the given game")]
     Rm {
         #[structopt(short, long)]
         ip: Option<String>,
