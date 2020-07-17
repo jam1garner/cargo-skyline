@@ -40,7 +40,7 @@ fn output_expected_tree(plugin_name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn new_plugin(name: String, git_url: String) -> Result<()> {
+pub fn new_plugin(name: String, git_url: String, git_branch: String) -> Result<()> {
     if !Path::new("rust-std-skyline-squashed").exists() {
         println!("Not setup to be a plugin folder, Set it up as one? This will take up to 1 GB of space.");
         println!("Note: this can be shared between all the plugins in the folder.");
@@ -75,7 +75,7 @@ pub fn new_plugin(name: String, git_url: String) -> Result<()> {
     let status =
         Command::new("git")
             .args(&[
-                "clone", "-b", "master", "--single-branch", &git_url, &name
+                "clone", "-b", &git_branch, "--single-branch", &git_url, &name
             ])
             .stdout(std::process::Stdio::piped())
             .status()
@@ -87,6 +87,8 @@ pub fn new_plugin(name: String, git_url: String) -> Result<()> {
         for path in paths {
             replace(&format!("{}/{}", name, path), "skyline_rs_template", &name)?;
         }
+
+        let _ = fs::remove_file(&format!("{}/{}", name, ".github/workflows/rustdoc.yml"));
     }
 
     Ok(())

@@ -1,8 +1,9 @@
 use serde::Deserialize;
-use crate::error:: Result;
+use crate::error::Result;
 
 #[derive(Deserialize)]
 pub struct Metadata {
+    pub name: String,
     pub title_id: Option<String>,
     pub npdm_path: Option<String>,
     pub subsdk_name: Option<String>,
@@ -65,6 +66,12 @@ fn get_dep_urls(md: &serde_json::Value) -> Option<Vec<Dependency>> {
 pub fn get_metadata() -> Result<Metadata> {
     let metadata = cargo_metadata::MetadataCommand::new().exec()?;
 
+    let name = metadata.workspace_members.first()
+        .unwrap()
+        .repr.split(" ").next()
+        .unwrap()
+        .to_string();
+
     let title_id =
         metadata.packages.iter()
             .fold(None, |x, y| x.or_else(||{
@@ -93,6 +100,7 @@ pub fn get_metadata() -> Result<Metadata> {
             });
 
     Ok(Metadata {
+        name,
         title_id,
         npdm_path,
         subsdk_name,

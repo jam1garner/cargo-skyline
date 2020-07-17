@@ -175,6 +175,14 @@ impl FtpClient {
         self.expect_success()
     }
 
+    pub fn rm(&mut self, path: String) -> Result<()> {
+        self.clear_status();
+        println!("{}", path);
+        self.send(format!("DELE {}", path))?;
+
+        Ok(())
+    }
+
     pub fn put<S: AsRef<str>, D: AsRef<[u8]>>(&mut self, path: S, file: D) -> Result<()> {
         self.clear_status();
         self.send(format!("DELE {}", path.as_ref()))?;

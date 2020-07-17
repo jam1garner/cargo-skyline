@@ -26,6 +26,12 @@ enum SubCommands {
             default_value = "https://github.com/ultimate-research/skyline-rs-template.git"
         )]
         template_git: String,
+
+        #[structopt(
+            short, long,
+            default_value = "master"
+        )]
+        template_git_branch: String,
     },
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
@@ -97,6 +103,23 @@ enum SubCommands {
         )]
         title_id: Option<String>
     },
+    #[structopt(about = "Delete a file in the plugin directory for the given game")]
+    Rm {
+        #[structopt(short, long)]
+        ip: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
+        )]
+        title_id: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Filename of the plugin to delete",
+        )]
+        filename: Option<String>
+    },
     #[structopt(about = "Update cargo-skyline command")]
     SelfUpdate {
         #[structopt(short, long, default_value = "https://github.com/jam1garner/cargo-skyline")]
@@ -151,10 +174,11 @@ fn main() {
         ShowIp => ip_addr::show_ip(),
         Build { args, release } => build::build(args, release),
         Run { ip, title_id, debug} => installer::install_and_run(ip, title_id, !debug),
-        New { name, template_git } => git_clone_wrappers::new_plugin(name, template_git),
+        New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id } => installer::list(ip, title_id),
+        Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),
         SelfUpdate { from_master, git } => self_update(from_master, git),
         Package { skyline_release, title_id, out_path }
             => package::package(&skyline_release, title_id.as_deref(), &out_path),
