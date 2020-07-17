@@ -151,6 +151,14 @@ enum SubCommands {
     },
     #[structopt(about = "Update libraries for current plugin folder")]
     Update,
+    #[structopt(about = "Document the current plugin and its dependencies")]
+    Doc {
+        #[structopt(
+            short, long,
+            about = "Whether or not to open the docs in the default browser afterwards",
+        )]
+        open: bool,
+    },
 }
 
 #[derive(StructOpt)]
@@ -182,7 +190,8 @@ fn main() {
         SelfUpdate { from_master, git } => self_update(from_master, git),
         Package { skyline_release, title_id, out_path }
             => package::package(&skyline_release, title_id.as_deref(), &out_path),
-        Update => update()
+        Update => update(),
+        Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] })
     };
 
     if let Err(err) = result {

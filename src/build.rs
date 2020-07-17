@@ -123,3 +123,59 @@ pub fn build(mut args: Vec<String>, release: bool) -> Result<()> {
 
     Ok(())
 }
+
+pub fn doc(args: Vec<String>) -> Result<()> {
+    // Ensure rust-lld is added to the PATH on Windows
+    if !Command::new("rust-lld").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() || cfg!(windows) {
+        let toolchain_bin_dir = get_toolchain_bin_dir()?;
+
+        let paths = env::var_os("PATH").ok_or(Error::NoPathFound)?;
+        
+        let mut split_paths = env::split_paths(&paths).collect::<Vec<_>>();
+        split_paths.push(toolchain_bin_dir);
+
+        let new_path = env::join_paths(split_paths).unwrap();
+
+        env::set_var("PATH", &new_path);
+    }
+
+    if !Command::new("xargo").stdout(Stdio::null()).status().is_ok() {
+        match Command::new("cargo")
+                    .args(&["install", "xargo", "--force"])
+                    .stdout(Stdio::piped())
+                    .status()
+                    .unwrap()
+                    .code() {
+            Some(0) => {},
+            x @ Some(_) | x @ None => {
+                std::process::exit(x.unwrap_or(1));
+            }
+        }
+    }
+
+    let current_dir = std::env::current_dir()?;
+    let xargo_dir = current_dir.join("..").join("rust-std-skyline-squashed").join("src");
+
+    let mut command =
+        Command::new("xargo")
+            .args(&[
+                "doc"
+            ])
+            .args(args)
+            .current_dir(env::current_dir()?)
+            // Needed to make crates.io crates use the custom target
+            .env("RUST_TARGET_PATH", current_dir)
+            // ensure xargo can find the rust std
+            .env("XARGO_RUST_SRC", xargo_dir)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+
+    let exit_status = command.wait().unwrap();
+
+    if !exit_status.success() {
+        Err(Error::ExitStatus(exit_status.code().unwrap_or(1)))
+    } else {
+        Ok(())
+    }
+}
