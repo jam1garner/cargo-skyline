@@ -53,7 +53,7 @@ impl FtpClient {
         let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(20)));
         let mut dump = vec![];
         let _ = self.tcp.read_to_end(&mut dump);
-        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(500)));
+        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(1000)));
     }
 
     pub fn login(&mut self, user: &str, pass: &str) -> Result<&mut Self> {
@@ -149,7 +149,13 @@ impl FtpClient {
 
     pub fn file_exists<S: AsRef<str>>(&mut self, path: S) -> Result<bool> {
         self.clear_status();
-        let mut channel = self.open_passive_channel().unwrap().1;
+        let (_, mut channel) = match self.open_passive_channel() {
+            Err(FtpError::UnexpectedStatus(550)) => {
+                    return Ok(false);
+            },
+            x => x,
+        }.unwrap();
+
 
         self.send(format!("LIST {}", path.as_ref()))?;
 
