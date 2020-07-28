@@ -25,13 +25,15 @@ fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
     Ok(client)
 }
 
-fn warn_if_old_skyline_subsdk(client: &mut FtpClient, subsdk_base: &str) {
-    for i in 1..=8 {
-        if client.file_exists(format!("{}{}", subsdk_base, i)).unwrap_or(false) {
-            println!("{}: An old install of skyline is detected, this may cause problems.", "WARNING".yellow());
-            println!("Path: \"{}{}\"\n", subsdk_base, i);
-            return;
-        }
+fn warn_if_old_skyline_subsdk(client: &mut FtpClient, exefs_path: &str) {
+
+    let list = client.ls(Some(exefs_path)).unwrap();
+
+    let subsdk_count = list.matches("subsdk").count();
+    
+    if subsdk_count > 1 {
+        println!("{}: An old install of skyline is detected, this may cause problems.", "WARNING".yellow());
+        return;
     }
 }
 
@@ -77,7 +79,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
 
-    warn_if_old_skyline_subsdk(&mut client, &(get_game_path(&title_id) + "/exefs/subsdk"));
+    warn_if_old_skyline_subsdk(&mut client, &(get_game_path(&title_id) + "/exefs/"));
 
     // Ensure skyline is installed if it doesn't exist
     let subsdk_path = get_game_path(&title_id) + "/exefs/subsdk9";
