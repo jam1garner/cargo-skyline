@@ -53,7 +53,7 @@ impl FtpClient {
         let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(20)));
         let mut dump = vec![];
         let _ = self.tcp.read_to_end(&mut dump);
-        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(1000)));
+        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(500)));
     }
 
     pub fn login(&mut self, user: &str, pass: &str) -> Result<&mut Self> {
