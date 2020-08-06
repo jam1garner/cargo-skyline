@@ -132,7 +132,7 @@ enum SubCommands {
     Package {
         #[structopt(
             short, long,
-            default_value = "https://github.com/shadowninja108/Skyline/releases/download/beta/Skyline.zip"
+            default_value = "https://github.com/skyline-dev/skyline/releases/download/beta/skyline.zip"
         )]
         skyline_release: String,
 
