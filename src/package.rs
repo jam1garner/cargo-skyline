@@ -23,7 +23,7 @@ pub fn get_exefs(url: &str) -> Result<Exefs> {
 
     let mut zip = ZipArchive::new(zip_reader).unwrap();
 
-    let subsdk1 = zip.by_name("exefs/subsdk1")?.bytes().collect::<StdResult<_, _>>()?;
+    let subsdk1 = zip.by_name("exefs/subsdk9")?.bytes().collect::<StdResult<_, _>>()?;
     let main_npdm = zip.by_name("exefs/main.npdm")?.bytes().collect::<StdResult<_, _>>()?;
 
     Ok(Exefs {
