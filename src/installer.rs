@@ -41,7 +41,7 @@ fn parse_tid(tid: &str) -> u64 {
     u64::from_str_radix(tid, 16).expect("Invalid Title ID")
 }
 
-static SKYLINE_URL: &str = "https://github.com/shadowninja108/Skyline/releases/download/beta/Skyline.zip";
+static SKYLINE_URL: &str = "https://github.com/skyline-dev/skyline/releases/download/beta/skyline.zip";
 static TEMPLATE_NPDM: &[u8] = include_bytes!("template.npdm");
 
 pub fn generate_npdm(tid: &str) -> Vec<u8> {
