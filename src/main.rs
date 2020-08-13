@@ -101,7 +101,9 @@ enum SubCommands {
             short, long,
             about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
         )]
-        title_id: Option<String>
+        title_id: Option<String>,
+
+        path: Option<String>
     },
     #[structopt(about = "Delete a file in the plugin directory for the given game")]
     Rm {
@@ -114,11 +116,22 @@ enum SubCommands {
         )]
         title_id: Option<String>,
 
+        filename: Option<String>
+    },
+    #[structopt(about = "Copy a file over FTP")]
+    Cp {
+        #[structopt(short, long)]
+        ip: Option<String>,
+
         #[structopt(
             short, long,
-            about = "Filename of the plugin to delete",
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
         )]
-        filename: Option<String>
+        title_id: Option<String>,
+
+        src: String,
+        
+        dest: String
     },
     #[structopt(about = "Update cargo-skyline command")]
     SelfUpdate {
@@ -185,8 +198,9 @@ fn main() {
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),
-        List { ip, title_id } => installer::list(ip, title_id),
+        List { ip, title_id, path } => installer::list(ip, title_id, path),
         Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),
+        Cp { ip, title_id, src, dest } => installer::cp(ip, title_id, src, dest),
         SelfUpdate { from_master, git } => self_update(from_master, git),
         Package { skyline_release, title_id, out_path }
             => package::package(&skyline_release, title_id.as_deref(), &out_path),

@@ -1,5 +1,9 @@
-pub fn get_plugin_path(title_id: &str) -> String {
+pub fn get_plugins_path(title_id: &str) -> String {
     format!("/atmosphere/contents/{}/romfs/skyline/plugins", title_id)
+}
+
+pub fn get_plugin_path(title_id: &str, plugin_name: &str) -> String {
+    format!("/atmosphere/contents/{}/romfs/skyline/plugins/{}", title_id, plugin_name)
 }
 
 pub fn get_game_path(title_id: &str) -> String {

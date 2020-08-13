@@ -1,10 +1,11 @@
 use std::net::IpAddr;
+use std::path::{Path, PathBuf};
 use crate::error::{Result, Error};
 use crate::{build, cargo_info};
 use crate::ftp::FtpClient;
 use crate::tcp_listen;
 use crate::ip_addr::{get_ip, verify_ip};
-use crate::game_paths::{get_game_path, get_plugin_path};
+use crate::game_paths::{get_game_path, get_plugin_path, get_plugins_path};
 use temp_git::TempGitDir;
 use colored::*;
 
@@ -70,8 +71,6 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
             title_id.or_else(|| metadata.title_id.clone())
                     .ok_or(Error::NoTitleId)?;
 
-    let dir_path = get_plugin_path(&title_id);
-
     println!("Ensuring directory exists...");
     let _ = client.mkdir(&(get_game_path(&title_id)));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs"));
@@ -97,8 +96,8 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     }
 
     for dep in &metadata.plugin_dependencies {
-        let dep_path = &format!("{}/{}", dir_path, dep.name);
-        if !client.file_exists(dep_path).unwrap_or(false) {
+        let dep_path = get_plugin_path(&title_id, &dep.name);
+        if !client.file_exists(&dep_path).unwrap_or(false) {
             println!("Downloading dependency {}...", dep.name);
             let dep_data =
                 attohttpc::get(&dep.url).send()
@@ -116,7 +115,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
 
     println!("Transferring file...");
     client.put(
-        &format!("{}/{}", dir_path, nro_name),
+        get_plugin_path(&title_id, nro_name),
         std::fs::read(nro_path)?
     )?;
 
@@ -139,10 +138,18 @@ pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bo
     tcp_listen::listen(ip)
 }
 
-pub fn list(ip: Option<String>, title_id: Option<String>) -> Result<()> {
+pub fn list(ip: Option<String>, title_id: Option<String>, path: Option<String>) -> Result<()> {
     let ip = verify_ip(get_ip(ip)?)?;
 
     let mut client = connect(ip, false)?;
+
+    if path.is_some() {
+        println!("{}", 
+            client.ls(
+                Some(&path.unwrap())
+            )?);
+        return Ok(());
+    }
 
     let metadata = cargo_info::get_metadata()?;
 
@@ -151,13 +158,34 @@ pub fn list(ip: Option<String>, title_id: Option<String>) -> Result<()> {
                     .ok_or(Error::NoTitleId)?;
 
     println!("{}", client.ls(
-        Some(&(
-            get_game_path(&title_id)
-            + "/romfs/skyline/plugins"
-        ))
+        Some(&get_plugins_path(&title_id))
     )?);
 
     Ok(())
+}
+
+/* There are really three cases here:
+ ** 1. Filename is populated, and starts with '/'. Install path is filename treated as absolute path.
+ ** 2. Filename is populated, but is a relative path. Install path is filename treated as relative path to plugin directory.
+ ** 3. Filename isn't populated. Install path is current plugin NRO's default install path.
+*/
+fn get_install_path(title_id: Option<String>, filename: Option<String>) -> Result<String> {
+    if filename.is_some() {
+        let filename_str = (&filename).as_ref().unwrap();
+        if filename_str.starts_with("/") {
+            return Ok(filename_str.to_string());
+        }
+    }
+
+    let metadata = cargo_info::get_metadata()?;
+
+    let filename = filename.unwrap_or(format!("lib{}.nro", metadata.name));
+
+    let title_id =
+    title_id.or_else(|| metadata.title_id)
+            .ok_or(Error::NoTitleId)?;
+
+    Ok(get_plugin_path(&title_id, &filename))
 }
 
 pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>) -> Result<()> {
@@ -165,19 +193,33 @@ pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>
 
     let mut client = connect(ip, false)?;
 
-    let metadata = cargo_info::get_metadata()?;
+    client.rm(get_install_path(title_id, filename)?)?;
 
-    let filename = 
-            filename.unwrap_or(format!("lib{}.nro", metadata.name));
+    Ok(())
+}
 
-    let title_id =
-            title_id.or_else(|| metadata.title_id)
-                    .ok_or(Error::NoTitleId)?;
+pub fn cp(ip: Option<String>, title_id: Option<String>, src: String, dest: String) -> Result<()> {
+    let ip = verify_ip(get_ip(ip)?)?;
 
-    client.rm(
-            get_game_path(&title_id)
-            + "/romfs/skyline/plugins/"
-            + &filename
+    let mut client = connect(ip, false)?;
+
+    let dest_path = PathBuf::from(&dest);
+
+    let mut install_path = get_install_path(title_id, Some(dest_path.to_str().unwrap().to_string()))?;
+
+    let src_path = PathBuf::from(src);
+    let src_basename = src_path.file_name().unwrap();
+    let dest_basename = dest_path.file_name();
+
+    // if we're given a folder rather than a full filepath
+    if dest_basename.is_none() || dest_basename.unwrap() != src_basename {
+        install_path = Path::new(&install_path).join(src_basename).to_str().unwrap().to_string();
+    }
+
+    println!("Transferring file to {}...", install_path);
+    client.put(
+        install_path,
+        std::fs::read(src_path.to_str().unwrap().to_string())?
     )?;
 
     Ok(())
