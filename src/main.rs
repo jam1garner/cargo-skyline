@@ -233,6 +233,7 @@ fn main() {
             Error::DownloadError => eprintln!("{}: Failed to download latest release of Skyline. An internet connection is required.", "ERROR".red()),
             Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", "ERROR".red()),
             Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", "ERROR".red()),
+            Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", "ERROR".red()),
         }
 
         std::process::exit(1);

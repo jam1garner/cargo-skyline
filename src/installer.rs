@@ -198,12 +198,18 @@ pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>
     Ok(())
 }
 
+// for now, we assume src is local and dest is Switch
 pub fn cp(ip: Option<String>, title_id: Option<String>, src: String, dest: String) -> Result<()> {
     let ip = verify_ip(get_ip(ip)?)?;
 
     let mut client = connect(ip, false)?;
 
-    let dest_path = PathBuf::from(&dest);
+    // TODO: remove once two-way CP is supported
+    if dest.starts_with("/") {
+        return Err(Error::AbsSwitchPath);
+    }
+
+    let dest_path = PathBuf::from(&dest.replace("sd:/", "/"));
 
     let mut install_path = get_install_path(title_id, Some(dest_path.to_str().unwrap().to_string()))?;
 
