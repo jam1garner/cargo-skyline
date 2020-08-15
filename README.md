@@ -74,3 +74,9 @@ Install the current plugin to the default IP and title ID, then listen for outpu
 cargo skyline run
 ```
 
+## Alternative Installation via Docker
+
+```sh
+docker build -t cargo-skyline .
+docker run it cargo-skyline cargo skyline --help
+```
