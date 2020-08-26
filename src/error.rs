@@ -1,6 +1,6 @@
 use std::io;
 use crate::ftp::FtpError;
-use colored::*;
+use owo_colors::OwoColorize;
 
 pub enum Error {
     NoIpFound,

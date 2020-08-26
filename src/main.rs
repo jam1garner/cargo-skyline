@@ -2,7 +2,7 @@ use structopt::StructOpt;
 use error::{Error, Result};
 use std::process::Command;
 use std::path::PathBuf;
-use colored::*;
+use owo_colors::OwoColorize;
 
 mod installer;
 mod error;

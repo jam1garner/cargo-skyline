@@ -3,7 +3,7 @@ use std::process::Command;
 use std::fs;
 use crate::error::{Error, Result};
 use std::path::Path;
-use colored::*;
+use owo_colors::OwoColorize;
 use std::path::PathBuf;
 use std::env::current_dir;
 

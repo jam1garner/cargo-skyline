@@ -7,7 +7,7 @@ use crate::tcp_listen;
 use crate::ip_addr::{get_ip, verify_ip};
 use crate::game_paths::{get_game_path, get_plugin_path, get_plugins_path};
 use temp_git::TempGitDir;
-use colored::*;
+use owo_colors::OwoColorize;
 
 mod temp_git;
 

@@ -1,4 +1,4 @@
-use colored::*;
+use owo_colors::OwoColorize;
 use crate::game_paths::{get_subsdk_path, get_npdm_path, get_plugin_nro_path};
 use crate::error::{Error, Result};
 use crate::cargo_info;

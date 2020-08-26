@@ -246,14 +246,14 @@ dependencies = [
 
 [[package]]
 name = "cargo-skyline"
-version = "1.15.0"
+version = "1.16.0"
 dependencies = [
  "attohttpc",
  "cargo_metadata 0.9.1",
- "colored",
  "dirs 2.0.2",
  "glob 0.3.0",
  "linkle",
+ "owo-colors",
  "serde",
  "serde_json",
  "structopt",
@@ -321,17 +321,6 @@ dependencies = [
  "block-cipher-trait",
  "crypto-mac",
  "dbl",
-]
-
-[[package]]
-name = "colored"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4ffc801dacf156c5854b9df4f425a626539c3a6ef7893cc0c5084a23f0b6c59"
-dependencies = [
- "atty",
- "lazy_static",
- "winapi",
 ]
 
 [[package]]
@@ -769,6 +758,12 @@ dependencies = [
  "pkg-config",
  "vcpkg",
 ]
+
+[[package]]
+name = "owo-colors"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84b6808019774957884566d072679b27f7062778bd59f5589831dc798b01b343"
 
 [[package]]
 name = "percent-encoding"
