@@ -37,13 +37,17 @@ enum SubCommands {
     Build {
         #[structopt(long)]
         release: bool,
+
+        #[structopt(long)]
+        nso: bool,
+
         args: Vec<String>
     },
     #[structopt(about = "Build the current plugin and install to a switch over FTP")]
     Install {
         #[structopt(short, long)]
         debug: bool,
-        
+
         #[structopt(short, long)]
         ip: Option<String>,
 
@@ -69,7 +73,21 @@ enum SubCommands {
     Run {
         #[structopt(short, long)]
         debug: bool,
-        
+
+        #[structopt(short, long)]
+        restart: bool,
+
+        #[structopt(short, long)]
+        ip: Option<String>,
+
+        #[structopt(
+            short, long,
+            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
+        )]
+        title_id: Option<String>
+    },
+    #[structopt(about = "Install the current plugin and listen for skyline logging")]
+    Restart {
         #[structopt(short, long)]
         ip: Option<String>,
 
@@ -130,7 +148,7 @@ enum SubCommands {
         title_id: Option<String>,
 
         src: String,
-        
+
         dest: String
     },
     #[structopt(about = "Update cargo-skyline command")]
@@ -193,8 +211,9 @@ fn main() {
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
-        Build { args, release } => build::build(args, release),
-        Run { ip, title_id, debug} => installer::install_and_run(ip, title_id, !debug),
+        Build { args, release, nso } => build::build(args, release, nso),
+        Run { ip, title_id, debug, restart } => installer::install_and_run(ip, title_id, !debug, restart),
+        Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
         Listen { ip } => tcp_listen::listen(ip),

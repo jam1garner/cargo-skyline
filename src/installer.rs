@@ -132,8 +132,45 @@ pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release
     Ok(())
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
-    install(ip.clone(), title_id, release)?;
+use std::io::Write;
+use std::time::Duration;
+use std::net::TcpStream;
+
+const RESTART_PLUGIN_PORT: u16 = 45423;
+
+pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> {
+    let ip = verify_ip(get_ip(ip)?)?;
+
+    let mut port = TcpStream::connect_timeout(
+        &(ip, RESTART_PLUGIN_PORT).into(),
+        Duration::from_secs(1)
+    )?;
+
+    let metadata = cargo_info::get_metadata()?;
+
+    let title_id =
+            title_id.or_else(|| metadata.title_id.clone())
+                    .ok_or(Error::NoTitleId)?;
+
+    let title_id: u64 = u64::from_str_radix(&title_id, 0x10).unwrap_or(0);
+
+    port.write_all(&title_id.to_be_bytes())?;
+
+    Ok(())
+}
+
+pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool) -> Result<()> {
+    install(ip.clone(), title_id.clone(), release)?;
+
+    if restart {
+        let restart_ip = ip.clone();
+        std::thread::spawn(move || {
+            // Give logger some time to spin up
+            std::thread::sleep(std::time::Duration::from_millis(50));
+
+            restart_game(restart_ip, title_id);
+        });
+    }
     
     tcp_listen::listen(ip)
 }

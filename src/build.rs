@@ -102,7 +102,7 @@ pub fn build_get_nro(args: Vec<String>) -> Result<PathBuf> {
     let artifact = build_get_artifact(args)?;
 
     let nro_path = artifact.with_extension("nro");
-    
+
     NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
         .write_nro(
             &mut std::fs::File::create(&nro_path).map_err(|_| Error::FailWriteNro)?,
@@ -110,16 +110,33 @@ pub fn build_get_nro(args: Vec<String>) -> Result<PathBuf> {
             None,
             None
         )?;
-        
 
     Ok(nro_path)
 }
 
-pub fn build(mut args: Vec<String>, release: bool) -> Result<()> {
+pub fn build_get_nso(args: Vec<String>) -> Result<PathBuf> {
+    let artifact = build_get_artifact(args)?;
+
+    let nso_path = artifact.with_extension("nso");
+
+    NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
+        .write_nso(
+            &mut std::fs::File::create(&nso_path).map_err(|_| Error::FailWriteNro)?,
+        )?;
+
+    Ok(nso_path)
+}
+
+pub fn build(mut args: Vec<String>, release: bool, nso: bool) -> Result<()> {
     if release {
         args.push("--release".into());
     }
-    build_get_nro(args)?;
+
+    if nso {
+        build_get_nso(args)?;
+    } else {
+        build_get_nro(args)?;
+    }
 
     Ok(())
 }
