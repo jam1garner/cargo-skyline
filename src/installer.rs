@@ -53,13 +53,19 @@ pub fn generate_npdm(tid: &str) -> Vec<u8> {
     ].concat()
 }
 
-pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
+pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, nso: bool) -> Result<()> {
     let args = if release {
         vec![String::from("--release")]
     } else {
         vec![]
     };
-    let nro_path = build::build_get_nro(args)?;
+
+
+    let nro_path = if nso {
+        build::build_get_nso(args)?
+    } else {
+        build::build_get_nro(args)?
+    };
 
     let ip = verify_ip(get_ip(ip)?)?;
 
@@ -122,10 +128,10 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool) -> R
     Ok(())
 }
 
-pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool) -> Result<()> {
+pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, nso: bool) -> Result<()> {
     let temp_dir = TempGitDir::clone_to_current_dir(git)?;
 
-    install(ip, title_id, release)?;
+    install(ip, title_id, release, nso)?;
 
     temp_dir.delete();
 
@@ -159,8 +165,8 @@ pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> 
     Ok(())
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool) -> Result<()> {
-    install(ip.clone(), title_id.clone(), release)?;
+pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, nso: bool, restart: bool) -> Result<()> {
+    install(ip.clone(), title_id.clone(), release, nso)?;
 
     if restart {
         let restart_ip = ip.clone();
