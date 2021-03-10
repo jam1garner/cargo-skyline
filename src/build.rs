@@ -23,20 +23,26 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
 #[derive(Copy, Clone)]
 enum CargoCommand {
     Build,
-    Check
+    Check,
+    Clippy
 }
 
 impl CargoCommand {
     fn to_str(self) -> &'static str {
         match self {
             CargoCommand::Build => "build",
-            CargoCommand::Check => "check"
+            CargoCommand::Check => "check",
+            CargoCommand::Clippy => "clippy"
         }
     }
 }
 
 pub fn check() -> Result<()> {
     cargo_run_command(CargoCommand::Check, Vec::new()).map(|_| ())
+}
+
+pub fn clippy() -> Result<()> {
+    cargo_run_command(CargoCommand::Clippy, Vec::new()).map(|_| ())
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
