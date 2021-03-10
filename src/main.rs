@@ -33,6 +33,8 @@ enum SubCommands {
         )]
         template_git_branch: String,
     },
+    #[structopt(about = "Check if the current plugin builds and emit any errors found")]
+    Check,
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
         #[structopt(long)]
@@ -212,6 +214,7 @@ fn main() {
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
         Build { args, release, nso } => build::build(args, release, nso),
+        Check => build::check(),
         Run { ip, title_id, debug, restart } => installer::install_and_run(ip, title_id, !debug, restart),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),

@@ -20,7 +20,30 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
     Ok(glob::glob(search_path.to_str().expect("Toolchain path could not be converted to a &str")).unwrap().next().unwrap().unwrap())
 }
 
+#[derive(Copy, Clone)]
+enum CargoCommand {
+    Build,
+    Check
+}
+
+impl CargoCommand {
+    fn to_str(self) -> &'static str {
+        match self {
+            CargoCommand::Build => "build",
+            CargoCommand::Check => "check"
+        }
+    }
+}
+
+pub fn check() -> Result<()> {
+    cargo_run_command(CargoCommand::Check, Vec::new()).map(|_| ())
+}
+
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
+    cargo_run_command(CargoCommand::Build, args)?.ok_or(Error::FailParseCargoStream)
+}
+
+fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<PathBuf>> {
     // Ensure rust-lld is added to the PATH on Windows
     if !Command::new("rust-lld").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() || cfg!(windows) {
         let toolchain_bin_dir = get_toolchain_bin_dir()?;
@@ -55,7 +78,8 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
     let mut command =
         Command::new("xargo")
             .args(&[
-                "build", "--message-format=json-diagnostic-rendered-ansi", "--color", "always"
+                command.to_str(),
+                "--message-format=json-diagnostic-rendered-ansi", "--color", "always"
             ])
             .args(args)
             .current_dir(env::current_dir()?)
@@ -92,9 +116,9 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
     if !exit_status.success() {
         Err(Error::ExitStatus(exit_status.code().unwrap_or(1)))
     } else if let Some(artifact) = last_artifact {
-        Ok(artifact.filenames[0].clone())
+        Ok(Some(artifact.filenames[0].clone()))
     } else {
-        return Err(Error::FailParseCargoStream)
+        Ok(None)
     }
 }
 
