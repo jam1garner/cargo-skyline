@@ -45,6 +45,9 @@ enum SubCommands {
         #[structopt(long)]
         nso: bool,
 
+        #[structopt(long)]
+        features: Vec<String>,
+
         args: Vec<String>
     },
     #[structopt(about = "Build the current plugin and install to a switch over FTP")]
@@ -215,7 +218,7 @@ fn main() {
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
-        Build { args, release, nso } => build::build(args, release, nso),
+        Build { args, release, nso, features } => build::build(args, release, nso, features),
         Check => build::check(),
         Clippy => build::clippy(),
         Run { ip, title_id, debug, restart } => installer::install_and_run(ip, title_id, !debug, restart),
