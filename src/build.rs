@@ -163,14 +163,7 @@ pub fn build(mut args: Vec<String>, release: bool, nso: bool, features: Vec<Stri
     }
 
     if !features.is_empty() {
-        args.push("--features".into());
-        let feature_count = features.len();
-        for (num, feature) in features.into_iter().enumerate() {
-            args.push(feature);
-            if num != (feature_count - 1) {
-                args.push(",".into());
-            }
-        }
+        args.push(format!("--features={}", features.join(",")));
     }
 
     if nso {
