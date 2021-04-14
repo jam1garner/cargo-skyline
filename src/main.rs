@@ -69,6 +69,9 @@ enum SubCommands {
             about = "Install a project from a git url to the switch"
         )]
         git: Option<String>,
+
+        #[structopt(long)]
+        features: Vec<String>,
     },
     #[structopt(about = "Set the IP address of the switch to install to")]
     SetIp {
@@ -91,7 +94,10 @@ enum SubCommands {
             short, long,
             about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
         )]
-        title_id: Option<String>
+        title_id: Option<String>,
+
+        #[structopt(long)]
+        features: Vec<String>,
     },
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Restart {
@@ -211,17 +217,17 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug, git } => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug)
+        Install { ip, title_id, debug, git, features } => if let Some(git) = git {
+            installer::from_git(&git, ip, title_id, !debug, features)
         } else {
-            installer::install(ip, title_id, !debug)
+            installer::install(ip, title_id, !debug, features)
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
         Build { args, release, nso, features } => build::build(args, release, nso, features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart } => installer::install_and_run(ip, title_id, !debug, restart),
+        Run { ip, title_id, debug, restart , features} => installer::install_and_run(ip, title_id, !debug, restart, features),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
