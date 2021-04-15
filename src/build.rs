@@ -157,13 +157,17 @@ pub fn build_get_nso(args: Vec<String>) -> Result<PathBuf> {
     Ok(nso_path)
 }
 
-pub fn build(mut args: Vec<String>, release: bool, nso: bool, features: Vec<String>) -> Result<()> {
+pub fn build(mut args: Vec<String>, release: bool, nso: bool, features: Vec<String>, no_default_features: bool) -> Result<()> {
     if release {
         args.push("--release".into());
     }
 
     if !features.is_empty() {
         args.push(format!("--features={}", features.join(",")));
+    }
+
+    if no_default_features {
+        args.push("--no-default-features".to_owned());
     }
 
     if nso {

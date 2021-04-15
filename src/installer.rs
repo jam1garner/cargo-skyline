@@ -53,7 +53,7 @@ pub fn generate_npdm(tid: &str) -> Vec<u8> {
     ].concat()
 }
 
-pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>) -> Result<()> {
+pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, no_default_features: bool) -> Result<()> {
     let mut args = if release {
         vec![String::from("--release")]
     } else {
@@ -62,6 +62,10 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
 
     if !features.is_empty() {
         args.push(format!("--features={}", features.join(",")));
+    }
+
+    if no_default_features {
+        args.push("--no-default-features".to_owned());
     }
 
     let nro_path = build::build_get_nro(args)?;
@@ -127,10 +131,10 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
     Ok(())
 }
 
-pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>) -> Result<()> {
+pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, no_default_features: bool) -> Result<()> {
     let temp_dir = TempGitDir::clone_to_current_dir(git)?;
 
-    install(ip, title_id, release, features)?;
+    install(ip, title_id, release, features, no_default_features)?;
 
     temp_dir.delete();
 
@@ -164,8 +168,8 @@ pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> 
     Ok(())
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool, features: Vec<String>) -> Result<()> {
-    install(ip.clone(), title_id.clone(), release, features)?;
+pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool, features: Vec<String>, no_default_features: bool) -> Result<()> {
+    install(ip.clone(), title_id.clone(), release, features, no_default_features)?;
 
     if restart {
         let restart_ip = ip.clone();
