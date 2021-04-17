@@ -74,7 +74,7 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        path: Option<String>
+        root: Option<String>
     },
     #[structopt(about = "Set the IP address of the switch to install to")]
     SetIp {
@@ -103,7 +103,7 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        path: Option<String>
+        root: Option<String>
     },
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Restart {
@@ -223,8 +223,8 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug, git, features , path} => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug, features)
+        Install { ip, title_id, debug, git, features , root} => if let Some(git) = git {
+            installer::from_git(&git, ip, title_id, !debug, features, path)
         } else {
             installer::install(ip, title_id, !debug, features, path)
         },
@@ -233,7 +233,7 @@ fn main() {
         Build { args, release, nso, features } => build::build(args, release, nso, features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart , features, path} => installer::install_and_run(ip, title_id, !debug, restart, features, path),
+        Run { ip, title_id, debug, restart , features, root} => installer::install_and_run(ip, title_id, !debug, restart, features, path),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),

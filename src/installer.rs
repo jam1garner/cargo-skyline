@@ -143,10 +143,10 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
     Ok(())
 }
 
-pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>) -> Result<()> {
+pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, path: Option<String>) -> Result<()> {
     let temp_dir = TempGitDir::clone_to_current_dir(git)?;
 
-    install(ip, title_id, release, features, None)?;
+    install(ip, title_id, release, features, path)?;
 
     temp_dir.delete();
 
