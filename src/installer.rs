@@ -53,7 +53,7 @@ pub fn generate_npdm(tid: &str) -> Vec<u8> {
     ].concat()
 }
 
-pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>) -> Result<()> {
+pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, path: Option<String>) -> Result<()> {
     let mut args = if release {
         vec![String::from("--release")]
     } else {
@@ -79,9 +79,25 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
     println!("Ensuring directory exists...");
     let _ = client.mkdir(&(get_game_path(&title_id)));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs"));
-    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline"));
-    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
-    let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
+
+    if let Some(path) = path.as_ref() {
+        let dirs: Vec<&str> = path.split('/').filter_map(|x| {
+           if !x.is_empty() && !x.ends_with(".nro") {
+               Some(x)
+           } else {
+               None
+           }
+        }).collect();
+        let mut path_string = String::from("/romfs");
+        for dir in dirs.into_iter() {
+            path_string = format!("{}/{}", path_string, dir);
+            let _ = client.mkdir(&(get_game_path(&title_id) + path_string.as_str()));
+        }
+    } else {
+        let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline"));
+        let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
+        let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
+    }
 
     warn_if_old_skyline_subsdk(&mut client, &(get_game_path(&title_id) + "/exefs/"));
 
@@ -101,7 +117,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
     }
 
     for dep in &metadata.plugin_dependencies {
-        let dep_path = get_plugin_path(&title_id, &dep.name);
+        let dep_path = get_plugin_path(&title_id, &dep.name, None);
         if !client.file_exists(&dep_path).unwrap_or(false) {
             println!("Downloading dependency {}...", dep.name);
             let dep_data =
@@ -120,7 +136,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
 
     println!("Transferring file...");
     client.put(
-        get_plugin_path(&title_id, nro_name),
+        get_plugin_path(&title_id, nro_name, path),
         std::fs::read(nro_path)?
     )?;
 
@@ -130,7 +146,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
 pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>) -> Result<()> {
     let temp_dir = TempGitDir::clone_to_current_dir(git)?;
 
-    install(ip, title_id, release, features)?;
+    install(ip, title_id, release, features, None)?;
 
     temp_dir.delete();
 
@@ -164,8 +180,8 @@ pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> 
     Ok(())
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool, features: Vec<String>) -> Result<()> {
-    install(ip.clone(), title_id.clone(), release, features)?;
+pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool, features: Vec<String>, path: Option<String>) -> Result<()> {
+    install(ip.clone(), title_id.clone(), release, features, path)?;
 
     if restart {
         let restart_ip = ip.clone();
@@ -227,7 +243,7 @@ fn get_install_path(title_id: Option<String>, filename: Option<String>) -> Resul
     title_id.or_else(|| metadata.title_id)
             .ok_or(Error::NoTitleId)?;
 
-    Ok(get_plugin_path(&title_id, &filename))
+    Ok(get_plugin_path(&title_id, &filename, None))
 }
 
 pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>) -> Result<()> {
