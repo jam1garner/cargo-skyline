@@ -224,16 +224,16 @@ fn main() {
 
     let result = match subcommand {
         Install { ip, title_id, debug, git, features , root} => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug, features, path)
+            installer::from_git(&git, ip, title_id, !debug, features, root)
         } else {
-            installer::install(ip, title_id, !debug, features, path)
+            installer::install(ip, title_id, !debug, features, root)
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
         Build { args, release, nso, features } => build::build(args, release, nso, features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart , features, root} => installer::install_and_run(ip, title_id, !debug, restart, features, path),
+        Run { ip, title_id, debug, restart , features, root} => installer::install_and_run(ip, title_id, !debug, restart, features, root),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
