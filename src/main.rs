@@ -74,7 +74,7 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        root: Option<String>
+        install_path: Option<String>
     },
     #[structopt(about = "Set the IP address of the switch to install to")]
     SetIp {
@@ -103,7 +103,7 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        root: Option<String>
+        install_path: Option<String>
     },
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Restart {
@@ -223,17 +223,17 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug, git, features , root} => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug, features, root)
+        Install { ip, title_id, debug, git, features , install_path} => if let Some(git) = git {
+            installer::from_git(&git, ip, title_id, !debug, features, install_path)
         } else {
-            installer::install(ip, title_id, !debug, features, root)
+            installer::install(ip, title_id, !debug, features, install_path)
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
         Build { args, release, nso, features } => build::build(args, release, nso, features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart , features, root} => installer::install_and_run(ip, title_id, !debug, restart, features, root),
+        Run { ip, title_id, debug, restart , features, install_path} => installer::install_and_run(ip, title_id, !debug, restart, features, install_path),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
@@ -274,6 +274,7 @@ fn main() {
             Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", "ERROR".red()),
             Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", "ERROR".red()),
             Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", "ERROR".red()),
+            Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", "ERROR".red())
         }
 
         std::process::exit(1);

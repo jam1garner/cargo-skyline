@@ -64,6 +64,18 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
         args.push(format!("--features={}", features.join(",")));
     }
 
+    let (path, is_rom) = if let Some(path) = path.as_ref() {
+        if let Some(local_path) = path.strip_prefix("rom:/") {
+            Ok((local_path, true))
+        } else if let Some(absolute_path) = path.strip_prefix("sd:/") {
+            Ok((absolute_path, false))
+        } else {
+            Err(Error::BadSdPath)
+        }?
+    } else {
+        ("skyline/plugins", true)
+    };
+
     let nro_path = build::build_get_nro(args)?;
 
     let ip = verify_ip(get_ip(ip)?)?;
@@ -77,26 +89,27 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
                     .ok_or(Error::NoTitleId)?;
 
     println!("Ensuring directory exists...");
-    let _ = client.mkdir(&(get_game_path(&title_id)));
-    let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs"));
 
-    if let Some(path) = path.as_ref() {
-        let dirs: Vec<&str> = path.split('/').filter_map(|x| {
-           if !x.is_empty() && !x.ends_with(".nro") {
-               Some(x)
-           } else {
-               None
-           }
-        }).collect();
-        let mut path_string = String::from("/romfs");
-        for dir in dirs.into_iter() {
-            path_string = format!("{}/{}", path_string, dir);
-            let _ = client.mkdir(&(get_game_path(&title_id) + path_string.as_str()));
+    // this is where subsdk9 goes, it doesn't depend on the path
+    let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
+
+    let dirs: Vec<&str> = path.split('/').filter_map(|x| {
+        if !x.is_empty() && !x.ends_with(".nro") {
+            Some(x)
+        } else {
+            None
         }
+    }).collect();
+
+    let mut plugin_folder_path = if is_rom { 
+        format!("{}/romfs", get_game_path(&title_id))
     } else {
-        let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline"));
-        let _ = client.mkdir(&(get_game_path(&title_id) + "/romfs/skyline/plugins"));
-        let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
+        String::from("")
+    };
+
+    for dir in dirs.into_iter() {
+        plugin_folder_path = format!("{}/{}", plugin_folder_path, dir);
+        let _ = client.mkdir(&plugin_folder_path);
     }
 
     warn_if_old_skyline_subsdk(&mut client, &(get_game_path(&title_id) + "/exefs/"));
@@ -117,7 +130,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
     }
 
     for dep in &metadata.plugin_dependencies {
-        let dep_path = get_plugin_path(&title_id, &dep.name, None);
+        let dep_path = get_plugin_path(&title_id, &dep.name);
         if !client.file_exists(&dep_path).unwrap_or(false) {
             println!("Downloading dependency {}...", dep.name);
             let dep_data =
@@ -132,11 +145,15 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
         }
     }
 
-    let nro_name = nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?;
+    let nro_name = if path.ends_with(".nro") {
+        path.split('/').last().unwrap()
+    } else {
+        nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?
+    };
 
     println!("Transferring file...");
     client.put(
-        get_plugin_path(&title_id, nro_name, path),
+        format!("{}/{}", plugin_folder_path, nro_name),
         std::fs::read(nro_path)?
     )?;
 
@@ -243,7 +260,7 @@ fn get_install_path(title_id: Option<String>, filename: Option<String>) -> Resul
     title_id.or_else(|| metadata.title_id)
             .ok_or(Error::NoTitleId)?;
 
-    Ok(get_plugin_path(&title_id, &filename, None))
+    Ok(get_plugin_path(&title_id, &filename))
 }
 
 pub fn rm(ip: Option<String>, title_id: Option<String>, filename: Option<String>) -> Result<()> {

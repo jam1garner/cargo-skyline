@@ -23,7 +23,8 @@ pub enum Error {
     FtpError(FtpError),
     CargoError(cargo_metadata::Error),
     ExitStatus(i32),
-    AbsSwitchPath
+    AbsSwitchPath,
+    BadSdPath
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
