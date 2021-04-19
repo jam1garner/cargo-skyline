@@ -46,6 +46,9 @@ enum SubCommands {
         nso: bool,
 
         #[structopt(long)]
+        no_default_features: bool,
+
+        #[structopt(long)]
         features: Vec<String>,
 
         args: Vec<String>
@@ -69,6 +72,9 @@ enum SubCommands {
             about = "Install a project from a git url to the switch"
         )]
         git: Option<String>,
+
+        #[structopt(long)]
+        no_default_features: bool,
 
         #[structopt(long)]
         features: Vec<String>,
@@ -98,6 +104,9 @@ enum SubCommands {
             about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
         )]
         title_id: Option<String>,
+
+        #[structopt(long)]
+        no_default_features: bool,
 
         #[structopt(long)]
         features: Vec<String>,
@@ -223,17 +232,19 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug, git, features , install_path} => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug, features, install_path)
+        Install { ip, title_id, debug, git, features, no_default_features, install_path } => if let Some(git) = git {
+            installer::from_git(&git, ip, title_id, !debug, features, install_path, no_default_features)
         } else {
-            installer::install(ip, title_id, !debug, features, install_path)
+            installer::install(ip, title_id, !debug, features, install_path, no_default_features)
         },
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
-        Build { args, release, nso, features } => build::build(args, release, nso, features),
+        Build { args, release, nso, features, no_default_features }
+            => build::build(args, release, nso, features, no_default_features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart , features, install_path} => installer::install_and_run(ip, title_id, !debug, restart, features, install_path),
+        Run { ip, title_id, debug, restart , features, install_path, no_default_features }
+            => installer::install_and_run(ip, title_id, !debug, restart, features, install_path, no_default_features),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
