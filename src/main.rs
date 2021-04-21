@@ -197,6 +197,12 @@ enum SubCommands {
 
         #[structopt(
             short, long,
+            about = "Disable the inclusion of skyline into the package"
+        )]
+        no_skyline: bool,
+
+        #[structopt(
+            short, long,
             about = "Title ID of the game to package the plugin for",
         )]
         title_id: Option<String>,
@@ -253,8 +259,8 @@ fn main() {
         Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),
         Cp { ip, title_id, src, dest } => installer::cp(ip, title_id, src, dest),
         SelfUpdate { from_master, git } => self_update(from_master, git),
-        Package { skyline_release, title_id, out_path }
-            => package::package(&skyline_release, title_id.as_deref(), &out_path),
+        Package { skyline_release, title_id, out_path, no_skyline }
+            => package::package(&skyline_release, title_id.as_deref(), &out_path, !no_skyline),
         Update => update(),
         Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] })
     };

@@ -1,13 +1,11 @@
 [package]
 name = "cargo-skyline"
-version = "1.20.0"
+version = "1.21.0"
 authors = ["jam1garner <jam1.mcleod@hotmail.com>"]
 edition = "2018"
 description = "A cargo subcommand for working with Skyline plugins written in Rust"
 license = "MIT"
 repository = "https://github.com/jam1garner/cargo-skyline"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 structopt = "0.3.13"
