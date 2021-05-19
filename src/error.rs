@@ -14,8 +14,6 @@ pub enum Error {
     NoTitleId,
     FailParseCargoStream,
     FailWriteNro,
-    NoStdFound,
-    FailUpdateStd,
     DownloadError,
     ZipError,
     NoNpdmFileFound,
@@ -24,7 +22,13 @@ pub enum Error {
     CargoError(cargo_metadata::Error),
     ExitStatus(i32),
     AbsSwitchPath,
-    BadSdPath
+    BadSdPath,
+    GithubError,
+    InvalidRepo,
+    HostNotSupported,
+    DownloadFailed,
+    RustupNotFound,
+    RustupLinkFailed,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -62,5 +66,17 @@ impl From<io::Error> for Error {
 impl From<zip::result::ZipError> for Error {
     fn from(_: zip::result::ZipError) -> Self {
         Self::ZipError
+    }
+}
+
+impl From<octocrab::Error> for Error {
+    fn from(_: octocrab::Error) -> Self {
+        Self::GithubError
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(_: reqwest::Error) -> Self {
+        Self::DownloadFailed
     }
 }

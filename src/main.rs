@@ -1,7 +1,6 @@
 use structopt::StructOpt;
 use error::{Error, Result};
 use std::process::Command;
-use std::path::PathBuf;
 use owo_colors::OwoColorize;
 
 mod installer;
@@ -14,6 +13,7 @@ mod tcp_listen;
 mod ip_addr;
 mod git_clone_wrappers;
 mod game_paths;
+mod update_std;
 
 #[derive(StructOpt)]
 enum SubCommands {
@@ -127,11 +127,8 @@ enum SubCommands {
     },
     #[structopt(about = "Download the latest stdlib for aarch64-skyline-switch")]
     UpdateStd {
-        #[structopt(short, long, default_value = "https://github.com/jam1garner/rust-std-skyline-squashed")]
-        git: String,
-
-        #[structopt(short, long)]
-        std_path: Option<PathBuf>
+        #[structopt(short, long, default_value = "skyline-rs/rust")]
+        repo: String,
     },
     #[structopt(about = "Listen for logs being output from a switch running skyline at the given ip")]
     Listen {
@@ -253,7 +250,7 @@ fn main() {
             => installer::install_and_run(ip, title_id, !debug, restart, features, install_path, no_default_features),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
-        UpdateStd { git, std_path } => git_clone_wrappers::update_std(git, std_path),
+        UpdateStd { repo } => update_std::update_std(&repo),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id, path } => installer::list(ip, title_id, path),
         Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),
@@ -285,13 +282,17 @@ fn main() {
             Error::ExitStatus(code) => std::process::exit(code),
             Error::FailWriteNro => eprintln!("{}: Unable to convert file from ELF to NRO", "ERROR".red()),
             Error::IoError(err) => eprintln!("{}{}", "IoError: ".red(), err),
-            Error::FailUpdateStd => eprintln!("{}: Could not update std due to a git-related failure", "ERROR".red()),
-            Error::NoStdFound => eprintln!("{}: Could not find stdlib. Make sure you're inside of either your workspace or a plugin folder", "ERROR".red()),
             Error::DownloadError => eprintln!("{}: Failed to download latest release of Skyline. An internet connection is required.", "ERROR".red()),
             Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", "ERROR".red()),
             Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", "ERROR".red()),
             Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", "ERROR".red()),
-            Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", "ERROR".red())
+            Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", "ERROR".red()),
+            Error::GithubError => eprintln!("{}: failed to get the latest release from github", "ERROR".red()),
+            Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", "ERROR".red()),
+            Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", "ERROR".red()),
+            Error::DownloadFailed => eprintln!("{}: the update failed to download.", "ERROR".red()),
+            Error::RustupNotFound => eprintln!("{}: rustup could not be executed, make sure it is installed.", "ERROR".red()),
+            Error::RustupLinkFailed => eprintln!("{}: rustup could not link the skyline toolchain.", "ERROR".red()),
         }
 
         std::process::exit(1);
