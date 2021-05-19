@@ -317,7 +317,7 @@ fn self_update(from_master: bool, git: String) -> Result<()> {
 }
 
 fn update() -> Result<()> {
-    Command::new("xargo")
+    Command::new("cargo")
         .arg("update")
         .status()?;
 
