@@ -84,6 +84,7 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
             .args(args)
             .arg("--")
             .args(rustc_options)
+            .env("SKYLINE_ADD_NRO_HEADER", "1")
             .current_dir(env::current_dir()?)
             .stdout(Stdio::piped())
             .spawn()
