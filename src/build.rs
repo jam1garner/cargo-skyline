@@ -52,6 +52,8 @@ pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
 }
 
 fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<PathBuf>> {
+    crate::update_std::check_std_installed()?;
+
     // Ensure rust-lld is added to the PATH on Windows
     if !Command::new("rust-lld").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() || cfg!(windows) {
         let toolchain_bin_dir = get_toolchain_bin_dir()?;
