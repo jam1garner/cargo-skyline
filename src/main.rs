@@ -331,7 +331,7 @@ fn update() -> Result<()> {
 use std::path::Path;
 use std::fs;
 
-const DEFAULT_CONFIG: &str = r#"[build]\ntarget = "aarch64-skyline-switch""#;
+const DEFAULT_CONFIG: &str = "[build]\ntarget = \"aarch64-skyline-switch\"";
 
 fn clean_project() -> Result<()> {
     if Path::new("rust-toolchain").exists() {
