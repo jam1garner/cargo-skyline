@@ -67,7 +67,7 @@ use cargo_metadata::MetadataCommand;
 
 pub fn get_metadata() -> Result<Metadata> {
     let output = MetadataCommand::new()
-        .other_options(["--target".to_string(), "aarch64-skyline-switch".to_string()])
+        //.other_options(["--target".to_string(), "aarch64-skyline-switch".to_string()])
         .cargo_command()?
         .env("RUSTUP_TOOLCHAIN", "skyline")
         .output()?;
