@@ -349,6 +349,7 @@ fn clean_project() -> Result<()> {
     }
 
     let _ = fs::remove_file("Xargo.toml");
+    let _ = fs::remove_file("Cargo.lock");
     let _ = fs::remove_file("aarch64-skyline-switch.json");
 
     Command::new("cargo").arg("clean").status()?;
