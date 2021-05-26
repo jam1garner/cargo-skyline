@@ -81,7 +81,8 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
             .args(&[
                 command.to_str(),
                 "--message-format=json-diagnostic-rendered-ansi",
-                "--color", "always"
+                "--color", "always",
+                "--target", "aarch64-skyline-switch",
             ])
             .args(args)
             .arg("--")

@@ -221,6 +221,8 @@ enum SubCommands {
         )]
         open: bool,
     },
+    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    CleanProject,
 }
 
 #[derive(StructOpt)]
@@ -259,7 +261,8 @@ fn main() {
         Package { skyline_release, title_id, out_path, no_skyline }
             => package::package(&skyline_release, title_id.as_deref(), &out_path, !no_skyline),
         Update => update(),
-        Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] })
+        Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] }),
+        CleanProject => clean_project(),
     };
 
     if let Err(err) = result {
@@ -321,6 +324,34 @@ fn update() -> Result<()> {
     Command::new("cargo")
         .arg("update")
         .status()?;
+
+    Ok(())
+}
+
+use std::path::Path;
+use std::fs;
+
+const DEFAULT_CONFIG: &str = r#"[build]\ntarget = "aarch64-skyline-switch""#;
+
+fn clean_project() -> Result<()> {
+    if Path::new("rust-toolchain").exists() {
+        fs::write("rust-toolchain", "stable").unwrap();
+    }
+
+    let delete_config = fs::read_to_string(".cargo/config")
+        .ok()
+        .map(|config| config.trim() == DEFAULT_CONFIG)
+        .unwrap_or(false);
+
+    if delete_config {
+        fs::remove_file(".cargo/config").unwrap();
+        fs::remove_dir(".cargo").unwrap();
+    }
+
+    let _ = fs::remove_file("Xargo.toml");
+    let _ = fs::remove_file("aarch64-skyline-switch.json");
+
+    Command::new("cargo").arg("clean").status()?;
 
     Ok(())
 }
