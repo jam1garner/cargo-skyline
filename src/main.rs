@@ -129,6 +129,9 @@ enum SubCommands {
     UpdateStd {
         #[structopt(short, long, default_value = "skyline-rs/rust")]
         repo: String,
+
+        #[structopt(short, long)]
+        tag: Option<String>,
     },
     #[structopt(about = "Listen for logs being output from a switch running skyline at the given ip")]
     Listen {
@@ -252,7 +255,7 @@ fn main() {
             => installer::install_and_run(ip, title_id, !debug, restart, features, install_path, no_default_features),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
-        UpdateStd { repo } => update_std::update_std(&repo),
+        UpdateStd { repo, tag } => update_std::update_std(&repo, tag.as_deref()),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id, path } => installer::list(ip, title_id, path),
         Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),

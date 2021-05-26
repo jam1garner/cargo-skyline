@@ -63,8 +63,27 @@ fn get_dep_urls(md: &serde_json::Value) -> Option<Vec<Dependency>> {
     )
 }
 
+use cargo_metadata::MetadataCommand;
+
 pub fn get_metadata() -> Result<Metadata> {
-    let metadata = cargo_metadata::MetadataCommand::new().exec()?;
+    let output = MetadataCommand::new()
+        .other_options(["--target".to_string(), "aarch64-skyline-switch".to_string()])
+        .cargo_command()?
+        .env("RUSTUP_TOOLCHAIN", "skyline")
+        .output()?;
+
+    if !output.status.success() {
+        return Err(cargo_metadata::Error::CargoMetadata {
+            stderr: String::from_utf8(output.stderr).unwrap(),
+        }.into());
+    }
+    let stdout = std::str::from_utf8(&output.stdout)
+        .unwrap()
+        .lines()
+        .find(|line| line.starts_with('{'))
+        .ok_or_else(|| cargo_metadata::Error::NoJson)?;
+
+    let metadata = MetadataCommand::parse(stdout)?;
 
     let name = metadata.workspace_members.first()
         .unwrap()

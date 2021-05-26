@@ -99,6 +99,17 @@ async fn get_update(owner: &str, repo: &str) -> Result<Update, Error> {
         .map_err(Error::from)
 }
 
+#[tokio::main(flavor = "current_thread")]
+async fn get_update_by_tag(owner: &str, repo: &str, tag: &str) -> Result<Update, Error> {
+    octocrab::instance()
+        .repos(owner, repo)
+        .releases()
+        .get_by_tag(tag)
+        .await
+        .map(Update)
+        .map_err(Error::from)
+}
+
 pub fn check_std_installed() -> Result<(), Error> {
     if get_version_file().exists() {
         Ok(())
@@ -109,7 +120,7 @@ pub fn check_std_installed() -> Result<(), Error> {
             .interact()
             .unwrap();
         if should_install {
-            update_std("skyline-rs/rust")
+            update_std("skyline-rs/rust", None)
         } else {
             std::process::exit(1);
         }
@@ -133,10 +144,14 @@ fn rustup_toolchain_link(name: &str, path: &Path) -> Result<(), Error> {
     }
 }
 
-pub fn update_std(repo: &str) -> Result<(), Error> {
+pub fn update_std(repo: &str, tag: Option<&str>) -> Result<(), Error> {
     let components: Vec<&str> = repo.split('/').collect();
     let [owner, repo]: [&str; 2] = components.try_into().map_err(|_| Error::InvalidRepo)?;
-    let update = get_update(owner, repo)?;
+    let update = if let Some(tag) = tag {
+        get_update_by_tag(owner, repo, tag)?
+    } else {
+        get_update(owner, repo)?
+    };
 
     if get_current_version() != Some(update.version()) {
         let zip_bytes = update.download()?;
