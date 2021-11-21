@@ -1,13 +1,13 @@
+use crate::error::{Error, Result};
+use crate::ftp::FtpClient;
+use crate::game_paths::{get_game_path, get_plugin_path, get_plugins_path};
+use crate::ip_addr::{get_ip, verify_ip};
+use crate::tcp_listen;
+use crate::{build, cargo_info};
+use owo_colors::OwoColorize;
 use std::net::IpAddr;
 use std::path::{Path, PathBuf};
-use crate::error::{Result, Error};
-use crate::{build, cargo_info};
-use crate::ftp::FtpClient;
-use crate::tcp_listen;
-use crate::ip_addr::{get_ip, verify_ip};
-use crate::game_paths::{get_game_path, get_plugin_path, get_plugins_path};
 use temp_git::TempGitDir;
-use owo_colors::OwoColorize;
 
 mod temp_git;
 
@@ -27,14 +27,15 @@ fn connect(ip: IpAddr, print: bool) -> Result<FtpClient> {
 }
 
 fn warn_if_old_skyline_subsdk(client: &mut FtpClient, exefs_path: &str) {
-
     let list = client.ls(Some(exefs_path)).unwrap();
 
     let subsdk_count = list.matches("subsdk").count();
-    
+
     if subsdk_count > 1 {
-        println!("{}: An old install of skyline is detected, this may cause problems.", "WARNING".yellow());
-        return;
+        println!(
+            "{}: An old install of skyline is detected, this may cause problems.",
+            "WARNING".yellow()
+        );
     }
 }
 
@@ -42,18 +43,27 @@ fn parse_tid(tid: &str) -> u64 {
     u64::from_str_radix(tid, 16).expect("Invalid Title ID")
 }
 
-static SKYLINE_URL: &str = "https://github.com/skyline-dev/skyline/releases/download/beta/skyline.zip";
+static SKYLINE_URL: &str =
+    "https://github.com/skyline-dev/skyline/releases/download/beta/skyline.zip";
 static TEMPLATE_NPDM: &[u8] = include_bytes!("template.npdm");
 
 pub fn generate_npdm(tid: &str) -> Vec<u8> {
     [
         &TEMPLATE_NPDM[..0x340],
         &parse_tid(tid).to_le_bytes()[..],
-        &TEMPLATE_NPDM[0x348..]
-    ].concat()
+        &TEMPLATE_NPDM[0x348..],
+    ]
+    .concat()
 }
 
-pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, path: Option<String>, no_default_features: bool) -> Result<()> {
+pub fn install(
+    ip: Option<String>,
+    title_id: Option<String>,
+    release: bool,
+    features: Vec<String>,
+    path: Option<String>,
+    no_default_features: bool,
+) -> Result<()> {
     let mut args = if release {
         vec![String::from("--release")]
     } else {
@@ -88,30 +98,26 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
 
     let metadata = cargo_info::get_metadata()?;
 
-    let title_id =
-            title_id.or_else(|| metadata.title_id.clone())
-                    .ok_or(Error::NoTitleId)?;
+    let title_id = title_id
+        .or_else(|| metadata.title_id.clone())
+        .ok_or(Error::NoTitleId)?;
 
     println!("Ensuring directory exists...");
 
     // this is where subsdk9 goes, it doesn't depend on the path
     let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
 
-    let dirs: Vec<&str> = path.split('/').filter_map(|x| {
-        if !x.is_empty() && !x.ends_with(".nro") {
-            Some(x)
-        } else {
-            None
-        }
-    }).collect();
+    let dirs = path
+        .split('/')
+        .filter(|x| !x.is_empty() && !x.ends_with(".nro"));
 
-    let mut plugin_folder_path = if is_rom { 
+    let mut plugin_folder_path = if is_rom {
         format!("{}/romfs", get_game_path(&title_id))
     } else {
         String::from("")
     };
 
-    for dir in dirs.into_iter() {
+    for dir in dirs {
         plugin_folder_path = format!("{}/{}", plugin_folder_path, dir);
         let _ = client.mkdir(&plugin_folder_path);
     }
@@ -120,7 +126,7 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
 
     // Ensure skyline is installed if it doesn't exist
     let subsdk_path = get_game_path(&title_id) + "/exefs/subsdk9";
-    if !client.file_exists(&subsdk_path).unwrap_or(false){
+    if !client.file_exists(&subsdk_path).unwrap_or(false) {
         println!("Skyline subsdk not installed for the given title, downloading...");
         let exefs = crate::package::get_exefs(SKYLINE_URL)?;
         println!("Installing over subsdk9...");
@@ -137,34 +143,44 @@ pub fn install(ip: Option<String>, title_id: Option<String>, release: bool, feat
         let dep_path = get_plugin_path(&title_id, &dep.name);
         if !client.file_exists(&dep_path).unwrap_or(false) {
             println!("Downloading dependency {}...", dep.name);
-            let dep_data =
-                attohttpc::get(&dep.url).send()
-                    .map_err(|_| Error::DownloadError)?
-                    .bytes().map_err(|_| Error::DownloadError)?;
+            let dep_data = attohttpc::get(&dep.url)
+                .send()
+                .map_err(|_| Error::DownloadError)?
+                .bytes()
+                .map_err(|_| Error::DownloadError)?;
             println!("Installing dependency {}...", dep.name);
-            client.put(
-                dep_path,
-                &dep_data
-            ).unwrap();
+            client.put(dep_path, &dep_data).unwrap();
         }
     }
 
     let nro_name = if path.ends_with(".nro") {
         path.split('/').last().unwrap()
     } else {
-        nro_path.file_name().map(|x| x.to_str()).flatten().ok_or(Error::FailWriteNro)?
+        nro_path
+            .file_name()
+            .map(|x| x.to_str())
+            .flatten()
+            .ok_or(Error::FailWriteNro)?
     };
 
     println!("Transferring file...");
     client.put(
         format!("{}/{}", plugin_folder_path, nro_name),
-        std::fs::read(nro_path)?
+        std::fs::read(nro_path)?,
     )?;
 
     Ok(())
 }
 
-pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release: bool, features: Vec<String>, path: Option<String>, no_default_features: bool) -> Result<()> {
+pub fn from_git(
+    git: &str,
+    ip: Option<String>,
+    title_id: Option<String>,
+    release: bool,
+    features: Vec<String>,
+    path: Option<String>,
+    no_default_features: bool,
+) -> Result<()> {
     let temp_dir = TempGitDir::clone_to_current_dir(git)?;
 
     install(ip, title_id, release, features, path, no_default_features)?;
@@ -175,24 +191,22 @@ pub fn from_git(git: &str, ip: Option<String>, title_id: Option<String>, release
 }
 
 use std::io::Write;
-use std::time::Duration;
 use std::net::TcpStream;
+use std::time::Duration;
 
 const RESTART_PLUGIN_PORT: u16 = 45423;
 
 pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> {
     let ip = verify_ip(get_ip(ip)?)?;
 
-    let mut port = TcpStream::connect_timeout(
-        &(ip, RESTART_PLUGIN_PORT).into(),
-        Duration::from_secs(1)
-    )?;
+    let mut port =
+        TcpStream::connect_timeout(&(ip, RESTART_PLUGIN_PORT).into(), Duration::from_secs(1))?;
 
     let metadata = cargo_info::get_metadata()?;
 
-    let title_id =
-            title_id.or_else(|| metadata.title_id.clone())
-                    .ok_or(Error::NoTitleId)?;
+    let title_id = title_id
+        .or_else(|| metadata.title_id.clone())
+        .ok_or(Error::NoTitleId)?;
 
     let title_id: u64 = u64::from_str_radix(&title_id, 0x10).unwrap_or(0);
 
@@ -201,8 +215,23 @@ pub fn restart_game(ip: Option<String>, title_id: Option<String>) -> Result<()> 
     Ok(())
 }
 
-pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bool, restart: bool, features: Vec<String>, path: Option<String>, no_default_features: bool) -> Result<()> {
-    install(ip.clone(), title_id.clone(), release, features, path, no_default_features)?;
+pub fn install_and_run(
+    ip: Option<String>,
+    title_id: Option<String>,
+    release: bool,
+    restart: bool,
+    features: Vec<String>,
+    path: Option<String>,
+    no_default_features: bool,
+) -> Result<()> {
+    install(
+        ip.clone(),
+        title_id.clone(),
+        release,
+        features,
+        path,
+        no_default_features,
+    )?;
 
     if restart {
         let restart_ip = ip.clone();
@@ -210,10 +239,10 @@ pub fn install_and_run(ip: Option<String>, title_id: Option<String>, release: bo
             // Give logger some time to spin up
             std::thread::sleep(std::time::Duration::from_millis(50));
 
-            restart_game(restart_ip, title_id);
+            let _ = restart_game(restart_ip, title_id);
         });
     }
-    
+
     tcp_listen::listen(ip)
 }
 
@@ -223,22 +252,14 @@ pub fn list(ip: Option<String>, title_id: Option<String>, path: Option<String>) 
     let mut client = connect(ip, false)?;
 
     if path.is_some() {
-        println!("{}", 
-            client.ls(
-                Some(&path.unwrap())
-            )?);
+        println!("{}", client.ls(Some(&path.unwrap()))?);
         return Ok(());
     }
 
     let metadata = cargo_info::get_metadata()?;
+    let title_id = title_id.or(metadata.title_id).ok_or(Error::NoTitleId)?;
 
-    let title_id =
-            title_id.or_else(|| metadata.title_id)
-                    .ok_or(Error::NoTitleId)?;
-
-    println!("{}", client.ls(
-        Some(&get_plugins_path(&title_id))
-    )?);
+    println!("{}", client.ls(Some(&get_plugins_path(&title_id)))?);
 
     Ok(())
 }
@@ -251,7 +272,7 @@ pub fn list(ip: Option<String>, title_id: Option<String>, path: Option<String>) 
 fn get_install_path(title_id: Option<String>, filename: Option<String>) -> Result<String> {
     if filename.is_some() {
         let filename_str = (&filename).as_ref().unwrap();
-        if filename_str.starts_with("/") {
+        if filename_str.starts_with('/') {
             return Ok(filename_str.to_string());
         }
     }
@@ -260,9 +281,7 @@ fn get_install_path(title_id: Option<String>, filename: Option<String>) -> Resul
 
     let filename = filename.unwrap_or(format!("lib{}.nro", metadata.name));
 
-    let title_id =
-    title_id.or_else(|| metadata.title_id)
-            .ok_or(Error::NoTitleId)?;
+    let title_id = title_id.or(metadata.title_id).ok_or(Error::NoTitleId)?;
 
     Ok(get_plugin_path(&title_id, &filename))
 }
@@ -284,13 +303,14 @@ pub fn cp(ip: Option<String>, title_id: Option<String>, src: String, dest: Strin
     let mut client = connect(ip, false)?;
 
     // TODO: remove once two-way CP is supported
-    if dest.starts_with("/") {
+    if dest.starts_with('/') {
         return Err(Error::AbsSwitchPath);
     }
 
     let dest_path = PathBuf::from(&dest.replace("sd:/", "/"));
 
-    let mut install_path = get_install_path(title_id, Some(dest_path.to_str().unwrap().to_string()))?;
+    let mut install_path =
+        get_install_path(title_id, Some(dest_path.to_str().unwrap().to_string()))?;
 
     let src_path = PathBuf::from(src);
     let src_basename = src_path.file_name().unwrap();
@@ -298,13 +318,17 @@ pub fn cp(ip: Option<String>, title_id: Option<String>, src: String, dest: Strin
 
     // if we're given a folder rather than a full filepath
     if dest_basename.is_none() || dest_basename.unwrap() != src_basename {
-        install_path = Path::new(&install_path).join(src_basename).to_str().unwrap().to_string();
+        install_path = Path::new(&install_path)
+            .join(src_basename)
+            .to_str()
+            .unwrap()
+            .to_string();
     }
 
     println!("Transferring file to {}...", install_path);
     client.put(
         install_path,
-        std::fs::read(src_path.to_str().unwrap().to_string())?
+        std::fs::read(src_path.to_str().unwrap().to_string())?,
     )?;
 
     Ok(())

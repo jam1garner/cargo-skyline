@@ -1,18 +1,18 @@
-use structopt::StructOpt;
 use error::{Error, Result};
-use std::process::Command;
 use owo_colors::OwoColorize;
+use std::process::Command;
+use structopt::StructOpt;
 
-mod installer;
-mod error;
-mod cargo_info;
-mod package;
 mod build;
+mod cargo_info;
+mod error;
 mod ftp;
-mod tcp_listen;
-mod ip_addr;
-mod git_clone_wrappers;
 mod game_paths;
+mod git_clone_wrappers;
+mod installer;
+mod ip_addr;
+mod package;
+mod tcp_listen;
 mod update_std;
 
 #[derive(StructOpt)]
@@ -22,15 +22,13 @@ enum SubCommands {
         name: String,
 
         #[structopt(
-            short, long,
+            short,
+            long,
             default_value = "https://github.com/ultimate-research/skyline-rs-template.git"
         )]
         template_git: String,
 
-        #[structopt(
-            short, long,
-            default_value = "master"
-        )]
+        #[structopt(short, long, default_value = "master")]
         template_git_branch: String,
     },
     #[structopt(about = "Check if the current plugin builds and emit any errors found")]
@@ -51,7 +49,7 @@ enum SubCommands {
         #[structopt(long)]
         features: Vec<String>,
 
-        args: Vec<String>
+        args: Vec<String>,
     },
     #[structopt(about = "Build the current plugin and install to a switch over FTP")]
     Install {
@@ -62,15 +60,13 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml"
         )]
         title_id: Option<String>,
 
-        #[structopt(
-            short, long,
-            about = "Install a project from a git url to the switch"
-        )]
+        #[structopt(short, long, about = "Install a project from a git url to the switch")]
         git: Option<String>,
 
         #[structopt(long)]
@@ -80,12 +76,10 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        install_path: Option<String>
+        install_path: Option<String>,
     },
     #[structopt(about = "Set the IP address of the switch to install to")]
-    SetIp {
-        ip: String
-    },
+    SetIp { ip: String },
     #[structopt(about = "Show the currently configured IP address")]
     ShowIp,
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
@@ -100,8 +94,9 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml"
         )]
         title_id: Option<String>,
 
@@ -112,7 +107,7 @@ enum SubCommands {
         features: Vec<String>,
 
         #[structopt(long)]
-        install_path: Option<String>
+        install_path: Option<String>,
     },
     #[structopt(about = "Install the current plugin and listen for skyline logging")]
     Restart {
@@ -120,10 +115,11 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to install the plugin for, can be overriden in Cargo.toml"
         )]
-        title_id: Option<String>
+        title_id: Option<String>,
     },
     #[structopt(about = "Download the latest stdlib for aarch64-skyline-switch")]
     UpdateStd {
@@ -133,7 +129,9 @@ enum SubCommands {
         #[structopt(short, long)]
         tag: Option<String>,
     },
-    #[structopt(about = "Listen for logs being output from a switch running skyline at the given ip")]
+    #[structopt(
+        about = "Listen for logs being output from a switch running skyline at the given ip"
+    )]
     Listen {
         #[structopt(short, long)]
         ip: Option<String>,
@@ -144,12 +142,13 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml"
         )]
         title_id: Option<String>,
 
-        path: Option<String>
+        path: Option<String>,
     },
     #[structopt(about = "Delete a file in the plugin directory for the given game")]
     Rm {
@@ -157,12 +156,13 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml"
         )]
         title_id: Option<String>,
 
-        filename: Option<String>
+        filename: Option<String>,
     },
     #[structopt(about = "Copy a file over FTP")]
     Cp {
@@ -170,45 +170,52 @@ enum SubCommands {
         ip: Option<String>,
 
         #[structopt(
-            short, long,
-            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml",
+            short,
+            long,
+            about = "Title ID of the game to list the installed plugins for, can be overriden in Cargo.toml"
         )]
         title_id: Option<String>,
 
         src: String,
 
-        dest: String
+        dest: String,
     },
     #[structopt(about = "Update cargo-skyline command")]
     SelfUpdate {
-        #[structopt(short, long, default_value = "https://github.com/jam1garner/cargo-skyline")]
+        #[structopt(
+            short,
+            long,
+            default_value = "https://github.com/jam1garner/cargo-skyline"
+        )]
         git: String,
 
         #[structopt(short, long)]
         from_master: bool,
     },
-    #[structopt(about = "Package plugin and latest Skyline into a zip file to prepare it for release")]
+    #[structopt(
+        about = "Package plugin and latest Skyline into a zip file to prepare it for release"
+    )]
     Package {
         #[structopt(
-            short, long,
+            short,
+            long,
             default_value = "https://github.com/skyline-dev/skyline/releases/download/beta/skyline.zip"
         )]
         skyline_release: String,
 
         #[structopt(
-            short, long,
+            short,
+            long,
             about = "Disable the inclusion of skyline into the package"
         )]
         no_skyline: bool,
 
-        #[structopt(
-            short, long,
-            about = "Title ID of the game to package the plugin for",
-        )]
+        #[structopt(short, long, about = "Title ID of the game to package the plugin for")]
         title_id: Option<String>,
 
         #[structopt(
-            short, long,
+            short,
+            long,
             about = "Path to output zip to",
             default_value = "target/release.zip"
         )]
@@ -219,19 +226,23 @@ enum SubCommands {
     #[structopt(about = "Document the current plugin and its dependencies")]
     Doc {
         #[structopt(
-            short, long,
-            about = "Whether or not to open the docs in the default browser afterwards",
+            short,
+            long,
+            about = "Whether or not to open the docs in the default browser afterwards"
         )]
         open: bool,
     },
     #[structopt(setting(structopt::clap::AppSettings::Hidden))]
     CleanProject,
+
+    #[structopt(about = "Restart the given game using restart-plugin")]
+    RestartGame,
 }
 
 #[derive(StructOpt)]
 #[structopt(bin_name = "cargo")]
 enum Args {
-    Skyline(SubCommands)
+    Skyline(SubCommands),
 }
 
 fn main() {
@@ -240,32 +251,100 @@ fn main() {
     use SubCommands::*;
 
     let result = match subcommand {
-        Install { ip, title_id, debug, git, features, no_default_features, install_path } => if let Some(git) = git {
-            installer::from_git(&git, ip, title_id, !debug, features, install_path, no_default_features)
-        } else {
-            installer::install(ip, title_id, !debug, features, install_path, no_default_features)
-        },
+        Install {
+            ip,
+            title_id,
+            debug,
+            git,
+            features,
+            no_default_features,
+            install_path,
+        } => {
+            if let Some(git) = git {
+                installer::from_git(
+                    &git,
+                    ip,
+                    title_id,
+                    !debug,
+                    features,
+                    install_path,
+                    no_default_features,
+                )
+            } else {
+                installer::install(
+                    ip,
+                    title_id,
+                    !debug,
+                    features,
+                    install_path,
+                    no_default_features,
+                )
+            }
+        }
         SetIp { ip } => ip_addr::set_ip(ip),
         ShowIp => ip_addr::show_ip(),
-        Build { args, release, nso, features, no_default_features }
-            => build::build(args, release, nso, features, no_default_features),
+        Build {
+            args,
+            release,
+            nso,
+            features,
+            no_default_features,
+        } => build::build(args, release, nso, features, no_default_features),
         Check => build::check(),
         Clippy => build::clippy(),
-        Run { ip, title_id, debug, restart , features, install_path, no_default_features }
-            => installer::install_and_run(ip, title_id, !debug, restart, features, install_path, no_default_features),
+        Run {
+            ip,
+            title_id,
+            debug,
+            restart,
+            features,
+            install_path,
+            no_default_features,
+        } => installer::install_and_run(
+            ip,
+            title_id,
+            !debug,
+            restart,
+            features,
+            install_path,
+            no_default_features,
+        ),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
-        New { name, template_git, template_git_branch } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
+        New {
+            name,
+            template_git,
+            template_git_branch,
+        } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
         UpdateStd { repo, tag } => update_std::update_std(&repo, tag.as_deref()),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id, path } => installer::list(ip, title_id, path),
-        Rm { ip, title_id, filename } => installer::rm(ip, title_id, filename),
-        Cp { ip, title_id, src, dest } => installer::cp(ip, title_id, src, dest),
+        Rm {
+            ip,
+            title_id,
+            filename,
+        } => installer::rm(ip, title_id, filename),
+        Cp {
+            ip,
+            title_id,
+            src,
+            dest,
+        } => installer::cp(ip, title_id, src, dest),
         SelfUpdate { from_master, git } => self_update(from_master, git),
-        Package { skyline_release, title_id, out_path, no_skyline }
-            => package::package(&skyline_release, title_id.as_deref(), &out_path, !no_skyline),
+        Package {
+            skyline_release,
+            title_id,
+            out_path,
+            no_skyline,
+        } => package::package(
+            &skyline_release,
+            title_id.as_deref(),
+            &out_path,
+            !no_skyline,
+        ),
         Update => update(),
         Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] }),
         CleanProject => clean_project(),
+        RestartGame => installer::restart_game(None, None),
     };
 
     if let Err(err) = result {
@@ -315,24 +394,19 @@ fn self_update(from_master: bool, git: String) -> Result<()> {
         args.push("cargo-skyline");
     }
 
-    Command::new("cargo")
-        .args(&args)
-        .status()
-        .unwrap();
+    Command::new("cargo").args(&args).status().unwrap();
 
     Ok(())
 }
 
 fn update() -> Result<()> {
-    Command::new("cargo")
-        .arg("update")
-        .status()?;
+    Command::new("cargo").arg("update").status()?;
 
     Ok(())
 }
 
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 
 const DEFAULT_CONFIG: &str = "[build]\ntarget = \"aarch64-skyline-switch\"";
 

@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-skyline"
-version = "2.1.0"
+version = "2.2.0"
 dependencies = [
  "attohttpc",
  "cargo_metadata 0.10.0",
@@ -1154,9 +1154,9 @@ dependencies = [
 
 [[package]]
 name = "owo-colors"
-version = "1.0.3"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84b6808019774957884566d072679b27f7062778bd59f5589831dc798b01b343"
+checksum = "f9ad6d222cdc2351ccabb7af4f68bfaecd601b33c5f10d410ec89d2a273f6fff"
 
 [[package]]
 name = "percent-encoding"
