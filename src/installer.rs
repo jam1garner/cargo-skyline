@@ -105,6 +105,7 @@ pub fn install(
     println!("Ensuring directory exists...");
 
     // this is where subsdk9 goes, it doesn't depend on the path
+    let _ = client.mkdir(&get_game_path(&title_id));
     let _ = client.mkdir(&(get_game_path(&title_id) + "/exefs"));
 
     let dirs = path
@@ -116,6 +117,9 @@ pub fn install(
     } else {
         String::from("")
     };
+
+    // ensure romfs dir exists too
+    let _ = client.mkdir(&plugin_folder_path);
 
     for dir in dirs {
         plugin_folder_path = format!("{}/{}", plugin_folder_path, dir);
