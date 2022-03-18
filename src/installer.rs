@@ -130,7 +130,7 @@ pub fn install(
 
     // Ensure skyline is installed if it doesn't exist
     let subsdk_path = get_game_path(&title_id) + "/exefs/subsdk9";
-    if !client.file_exists(&subsdk_path).unwrap_or(false) {
+    if !client.file_exists(&subsdk_path).expect("Failed to check if subsdk9 exists") {
         println!("Skyline subsdk not installed for the given title, downloading...");
         let exefs = crate::package::get_exefs(SKYLINE_URL)?;
         println!("Installing over subsdk9...");
@@ -138,7 +138,7 @@ pub fn install(
     }
 
     let npdm_path = get_game_path(&title_id) + "/exefs/main.npdm";
-    if !client.file_exists(&npdm_path).unwrap_or(false) {
+    if !client.file_exists(&npdm_path).expect("Failed to check if NPDM exists") {
         println!("Skyline npdm not installed for the given title, generating and installing...");
         client.put(&npdm_path, generate_npdm(&title_id))?;
     }
