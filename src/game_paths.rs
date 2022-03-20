@@ -1,4 +1,4 @@
-pub const ATMOSPHERE_CONTENTS_DIR: &str = "atmosphere/contents";
+pub const ATMOSPHERE_CONTENTS_DIR: &str = "/atmosphere/contents";
 
 pub fn get_plugins_path(title_id: &str) -> String {
     format!(
