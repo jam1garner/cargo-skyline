@@ -67,7 +67,7 @@ pub fn package(
     let mut zip = ZipWriter::new(fs::File::create(out_path)?);
 
     zip.start_file(
-        get_plugin_nro_path(title_id, plugin_name.as_ref()),
+        get_plugin_nro_path(title_id, plugin_name.as_ref())[1..].to_string(),
         Default::default(),
     )?;
     zip.write_all(&plugin_data)?;
@@ -91,12 +91,12 @@ pub fn package(
             eprintln!("{}\n", "custom-npdm = \"path/to/your.npdm\"".bright_blue());
             &generated_npdm
         });
-        zip.start_file(get_npdm_path(title_id), Default::default())?;
+        zip.start_file(get_npdm_path(title_id)[1..].to_string(), Default::default())?;
         zip.write_all(main_npdm)?;
 
         // subsdk
         let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk9");
-        zip.start_file(get_subsdk_path(title_id, subsdk_name), Default::default())?;
+        zip.start_file(get_subsdk_path(title_id, subsdk_name)[1..].to_string(), Default::default())?;
         zip.write_all(&exefs.unwrap().subsdk1)?;
     }
 
