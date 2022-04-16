@@ -15,13 +15,12 @@ cargo_metadata = "0.10"
 serde_json = "1.0.51"
 linkle = "0.2.10" 
 glob = "0.3"
-attohttpc = "0.13"
 zip = "0.5.5"
 owo-colors = "3"
-octocrab = "0.9.0"
+octocrab = { version = "0.15.4", features = ["rustls"], default-features = false }
 tokio = { version = "1", features = ["rt", "macros"] }
 url = "2.2.2"
-reqwest = "0.11"
+reqwest = { version = "0.11", features = ["blocking", "rustls-tls"], default-features = false }
 indicatif = "0.16.0"
 dialoguer = "0.8.0"
 

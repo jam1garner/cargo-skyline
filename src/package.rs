@@ -16,8 +16,7 @@ pub struct Exefs {
 // TODO: Cache exefs to disk, figure out some strategy for cache invalidation?
 pub fn get_exefs(url: &str) -> Result<Exefs> {
     let zip_reader = Cursor::new(
-        attohttpc::get(url)
-            .send()
+        reqwest::blocking::get(url)
             .map_err(|_| Error::DownloadError)?
             .bytes()
             .map_err(|_| Error::DownloadError)?,
@@ -96,7 +95,10 @@ pub fn package(
 
         // subsdk
         let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk9");
-        zip.start_file(get_subsdk_path(title_id, subsdk_name)[1..].to_string(), Default::default())?;
+        zip.start_file(
+            get_subsdk_path(title_id, subsdk_name)[1..].to_string(),
+            Default::default(),
+        )?;
         zip.write_all(&exefs.unwrap().subsdk1)?;
     }
 

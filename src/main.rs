@@ -28,7 +28,7 @@ enum SubCommands {
         )]
         template_git: String,
 
-        #[structopt(short, long, default_value = "master")]
+        #[structopt(short = "-b", long, default_value = "master")]
         template_git_branch: String,
     },
     #[structopt(about = "Check if the current plugin builds and emit any errors found")]
