@@ -147,8 +147,7 @@ pub fn install(
         let dep_path = get_plugin_path(&title_id, &dep.name);
         if !client.file_exists(&dep_path).unwrap_or(false) {
             println!("Downloading dependency {}...", dep.name);
-            let dep_data = attohttpc::get(&dep.url)
-                .send()
+            let dep_data = reqwest::blocking::get(&dep.url)
                 .map_err(|_| Error::DownloadError)?
                 .bytes()
                 .map_err(|_| Error::DownloadError)?;
