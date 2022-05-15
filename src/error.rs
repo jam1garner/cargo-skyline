@@ -1,6 +1,6 @@
-use std::io;
 use crate::ftp::FtpError;
 use owo_colors::OwoColorize;
+use std::io;
 
 pub enum Error {
     NoIpFound,
@@ -42,7 +42,10 @@ pub fn no_title_id() {
         "Set in Cargo.toml in the `package.metadata.skyline.titleid` key or pass via `--titleid [id]`"),
         "ERROR".red()
     );
-    eprintln!("\n{}:\n\n[package.metadata.skyline]\ntitleid = \"01006A800016E000\"\n\n", "Example".bright_blue());
+    eprintln!(
+        "\n{}:\n\n[package.metadata.skyline]\ntitleid = \"01006A800016E000\"\n\n",
+        "Example".bright_blue()
+    );
 }
 
 impl From<FtpError> for Error {

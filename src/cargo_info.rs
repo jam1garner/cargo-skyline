@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::error::Result;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Metadata {
@@ -13,7 +13,7 @@ pub struct Metadata {
 #[derive(Deserialize, Debug)]
 pub struct Dependency {
     pub name: String,
-    pub url: String
+    pub url: String,
 }
 
 fn get_title_id(md: &serde_json::Value) -> Option<String> {
@@ -22,7 +22,7 @@ fn get_title_id(md: &serde_json::Value) -> Option<String> {
             .as_object()?
             .get("titleid")?
             .as_str()?
-            .into()
+            .into(),
     )
 }
 
@@ -32,7 +32,7 @@ fn get_npdm_path(md: &serde_json::Value) -> Option<String> {
             .as_object()?
             .get("custom-npdm")?
             .as_str()?
-            .into()
+            .into(),
     )
 }
 
@@ -42,7 +42,7 @@ fn get_subsdk_name(md: &serde_json::Value) -> Option<String> {
             .as_object()?
             .get("subsdk-name")?
             .as_str()?
-            .into()
+            .into(),
     )
 }
 
@@ -53,13 +53,13 @@ fn get_dep_urls(md: &serde_json::Value) -> Option<Vec<Dependency>> {
             .get("plugin-dependencies")?
             .as_array()?
             .into_iter()
-            .map(|x|{
+            .map(|x| {
                 let dep = x.as_object().unwrap();
                 let name = dep.get("name").unwrap().as_str().unwrap().into();
                 let url = dep.get("url").unwrap().as_str().unwrap().into();
                 Dependency { name, url }
             })
-            .collect()
+            .collect(),
     )
 }
 
@@ -75,7 +75,8 @@ pub fn get_metadata() -> Result<Metadata> {
     if !output.status.success() {
         return Err(cargo_metadata::Error::CargoMetadata {
             stderr: String::from_utf8(output.stderr).unwrap(),
-        }.into());
+        }
+        .into());
     }
     let stdout = std::str::from_utf8(&output.stdout)
         .unwrap()
@@ -85,44 +86,41 @@ pub fn get_metadata() -> Result<Metadata> {
 
     let metadata = MetadataCommand::parse(stdout)?;
 
-    let name = metadata.workspace_members.first()
+    let name = metadata
+        .workspace_members
+        .first()
         .unwrap()
-        .repr.split(" ").next()
+        .repr
+        .split(" ")
+        .next()
         .unwrap()
         .to_string();
 
-    let title_id =
-        metadata.packages.iter()
-            .fold(None, |x, y| x.or_else(||{
-                get_title_id(&y.metadata)
-            }));
-    
-    let npdm_path =
-        metadata.packages.iter()
-            .fold(None, |x, y| x.or_else(||{
-                get_npdm_path(&y.metadata)
-            }));
-    
-    let subsdk_name =
-        metadata.packages.iter()
-            .fold(None, |x, y| x.or_else(||{
-                get_subsdk_name(&y.metadata)
-            }));
+    let title_id = metadata
+        .packages
+        .iter()
+        .fold(None, |x, y| x.or_else(|| get_title_id(&y.metadata)));
 
-    let plugin_dependencies =
-        metadata.packages.iter()
-            .fold(vec![], |mut x, y| {
-                x.append(
-                    &mut get_dep_urls(&y.metadata).unwrap_or_default()
-                );
-                x
-            });
+    let npdm_path = metadata
+        .packages
+        .iter()
+        .fold(None, |x, y| x.or_else(|| get_npdm_path(&y.metadata)));
+
+    let subsdk_name = metadata
+        .packages
+        .iter()
+        .fold(None, |x, y| x.or_else(|| get_subsdk_name(&y.metadata)));
+
+    let plugin_dependencies = metadata.packages.iter().fold(vec![], |mut x, y| {
+        x.append(&mut get_dep_urls(&y.metadata).unwrap_or_default());
+        x
+    });
 
     Ok(Metadata {
         name,
         title_id,
         npdm_path,
         subsdk_name,
-        plugin_dependencies
+        plugin_dependencies,
     })
 }

@@ -1,29 +1,31 @@
 use crate::Error;
 
-use std::fs;
-use std::io::Cursor;
 use std::convert::TryInto;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
-use std::process::{Stdio, Command};
+use std::process::{Command, Stdio};
+use std::{env, fs};
 
-use zip::ZipArchive;
-use octocrab::models::repos::Asset;
 use indicatif::{ProgressBar, ProgressStyle};
+use octocrab::models::repos::Asset;
+use zip::ZipArchive;
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 
 fn get_cargo_dir() -> PathBuf {
-    dirs::home_dir()
-        .expect("No home directory found")
-        .push_join(".cargo")
+    env::var("CARGO_HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            dirs::home_dir()
+                .expect("No home directory found")
+                .push_join(".cargo")
+        })
         .ensure_exists()
 }
 
 fn get_cargo_skyline_dir() -> PathBuf {
-    get_cargo_dir()
-        .push_join("skyline")
-        .ensure_exists()
+    get_cargo_dir().push_join("skyline").ensure_exists()
 }
 
 fn get_skyline_toolchain_dir() -> PathBuf {
@@ -39,8 +41,7 @@ fn get_toolchain() -> PathBuf {
 }
 
 fn get_version_file() -> PathBuf {
-    get_toolchain()
-        .push_join("version")
+    get_toolchain().push_join("version")
 }
 
 fn get_current_version() -> Option<String> {
@@ -58,7 +59,8 @@ impl Update {
     }
 
     fn get_asset(&self) -> Result<&Asset, Error> {
-        self.0.assets
+        self.0
+            .assets
             .iter()
             .find(|assert| assert.name.contains(&TARGET))
             .ok_or(Error::HostNotSupported)
@@ -83,7 +85,7 @@ impl Update {
 
         pb.finish_with_message("downloaded");
         println!("Update downloaded!");
-            
+
         Ok(data)
     }
 }
@@ -173,15 +175,17 @@ pub fn update_std(repo: &str, tag: Option<&str>) -> Result<(), Error> {
             std::io::copy(&mut file_in_zip, &mut file).expect("Failed to write to file");
 
             #[cfg(unix)]
-            if !out_path.extension().map(|ext| ext.to_str() == Some("rlib")).unwrap_or(false) {
-                file.set_permissions(fs::Permissions::from_mode(0o775)).unwrap();
+            if !out_path
+                .extension()
+                .map(|ext| ext.to_str() == Some("rlib"))
+                .unwrap_or(false)
+            {
+                file.set_permissions(fs::Permissions::from_mode(0o775))
+                    .unwrap();
             }
         }
 
-        fs::write(
-            get_version_file(),
-            update.version()
-        ).expect("Failed to write version file");
+        fs::write(get_version_file(), update.version()).expect("Failed to write version file");
 
         rustup_toolchain_link("skyline", &toolchain)?;
     } else {

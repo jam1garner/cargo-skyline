@@ -1,23 +1,35 @@
-use std::process::{Command, Stdio};
+use crate::error::{Error, Result};
 use cargo_metadata::Message;
-use crate::error::{Result, Error};
-use std::path::PathBuf;
-use std::env;
 use linkle::format::nxo::NxoFile;
+use std::env;
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 fn get_toolchain_bin_dir() -> Result<PathBuf> {
+    let rustup_home = env::var("RUSTUP_HOME").map(PathBuf::from).or_else(|_| {
+        dirs::home_dir()
+            .map(|home| home.join(".rustup"))
+            .ok_or(Error::NoHomeDir)
+    })?;
+
     let rel_path = if cfg!(windows) {
-        r".rustup\toolchains\*\lib\rustlib\*\bin\"
+        r"toolchains\*\lib\rustlib\*\bin\"
     } else {
-        r".rustup/toolchains/*/lib/rustlib/*/bin/"
+        r"toolchains/*/lib/rustlib/*/bin/"
     };
 
-    let search_path =
-    dirs::home_dir()
-        .ok_or(Error::NoHomeDir)?
-        .join(rel_path);
+    let search_path = rustup_home.join(rel_path);
 
-    Ok(glob::glob(search_path.to_str().expect("Toolchain path could not be converted to a &str")).unwrap().next().unwrap().unwrap())
+    glob::glob(
+        search_path
+            .to_str()
+            .expect("Toolchain path could not be converted to a &str"),
+    )
+    .unwrap()
+    .next()
+    .unwrap()
+    .map(Ok)
+    .unwrap()
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -55,11 +67,17 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
     crate::update_std::check_std_installed()?;
 
     // Ensure rust-lld is added to the PATH on Windows
-    if !Command::new("rust-lld").stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok() || cfg!(windows) {
+    if !Command::new("rust-lld")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok()
+        || cfg!(windows)
+    {
         let toolchain_bin_dir = get_toolchain_bin_dir()?;
 
         let paths = env::var_os("PATH").ok_or(Error::NoPathFound)?;
-        
+
         let mut split_paths = env::split_paths(&paths).collect::<Vec<_>>();
         split_paths.push(toolchain_bin_dir);
 
@@ -75,43 +93,43 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
     };
 
     // cargo +skyline rustc --target aarch64-skyline-switch -- -C link-arg=-Tlink.ld
-    let mut command =
-        Command::new("cargo")
-            .arg("+skyline")
-            .args(&[
-                command.to_str(),
-                "--message-format=json-diagnostic-rendered-ansi",
-                "--color", "always",
-                "--target", "aarch64-skyline-switch",
-            ])
-            .args(args)
-            .arg("--")
-            .args(rustc_options)
-            .env("SKYLINE_ADD_NRO_HEADER", "1")
-            .current_dir(env::current_dir()?)
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap();
+    let mut command = Command::new("cargo")
+        .arg("+skyline")
+        .args(&[
+            command.to_str(),
+            "--message-format=json-diagnostic-rendered-ansi",
+            "--color",
+            "always",
+            "--target",
+            "aarch64-skyline-switch",
+        ])
+        .args(args)
+        .arg("--")
+        .args(rustc_options)
+        .env("SKYLINE_ADD_NRO_HEADER", "1")
+        .current_dir(env::current_dir()?)
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
 
-    let last_artifact =
-        cargo_metadata::parse_messages(command.stdout.as_mut().unwrap())
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|_| Error::FailParseCargoStream)?
-            .into_iter()
-            .filter_map(|message| {
-                if let Message::CompilerArtifact(artifact) = message {
-                    Some(artifact)
-                } else if let Message::CompilerMessage(message) = message {
-                    if let Some(msg) = message.message.rendered {
-                        println!("{}", msg);
-                    }
-
-                    None
-                } else {
-                    None
+    let last_artifact = cargo_metadata::parse_messages(command.stdout.as_mut().unwrap())
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(|_| Error::FailParseCargoStream)?
+        .into_iter()
+        .filter_map(|message| {
+            if let Message::CompilerArtifact(artifact) = message {
+                Some(artifact)
+            } else if let Message::CompilerMessage(message) = message {
+                if let Some(msg) = message.message.rendered {
+                    println!("{}", msg);
                 }
-            })
-            .last();
+
+                None
+            } else {
+                None
+            }
+        })
+        .last();
 
     let exit_status = command.wait().unwrap();
 
@@ -129,13 +147,12 @@ pub fn build_get_nro(args: Vec<String>) -> Result<PathBuf> {
 
     let nro_path = artifact.with_extension("nro");
 
-    NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
-        .write_nro(
-            &mut std::fs::File::create(&nro_path).map_err(|_| Error::FailWriteNro)?,
-            None,
-            None,
-            None
-        )?;
+    NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?.write_nro(
+        &mut std::fs::File::create(&nro_path).map_err(|_| Error::FailWriteNro)?,
+        None,
+        None,
+        None,
+    )?;
 
     Ok(nro_path)
 }
@@ -146,14 +163,18 @@ pub fn build_get_nso(args: Vec<String>) -> Result<PathBuf> {
     let nso_path = artifact.with_extension("nso");
 
     NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
-        .write_nso(
-            &mut std::fs::File::create(&nso_path).map_err(|_| Error::FailWriteNro)?,
-        )?;
+        .write_nso(&mut std::fs::File::create(&nso_path).map_err(|_| Error::FailWriteNro)?)?;
 
     Ok(nso_path)
 }
 
-pub fn build(mut args: Vec<String>, release: bool, nso: bool, features: Vec<String>, no_default_features: bool) -> Result<()> {
+pub fn build(
+    mut args: Vec<String>,
+    release: bool,
+    nso: bool,
+    features: Vec<String>,
+    no_default_features: bool,
+) -> Result<()> {
     if release {
         args.push("--release".into());
     }

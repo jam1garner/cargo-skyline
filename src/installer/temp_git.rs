@@ -1,7 +1,7 @@
-use std::fs;
-use std::env;
-use std::path::PathBuf;
 use crate::error::Result;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 use std::process::Command;
 
 /// Helper struct which uses RAII to help ensure a git directory is cleaned up after cloning
@@ -21,11 +21,11 @@ impl TempGitDir {
         println!("{}", dir.display());
         Ok(Self {
             previous_dir,
-            dir: env::current_dir()?
+            dir: env::current_dir()?,
         })
     }
 
-    pub fn delete(self) {  }
+    pub fn delete(self) {}
 }
 
 impl std::ops::Drop for TempGitDir {

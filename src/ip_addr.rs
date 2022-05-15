@@ -1,13 +1,14 @@
+use crate::error::{Error, Result};
 use std::net::IpAddr;
-use crate::error::{Result, Error};
 
 const IP_ADDR_FILE: &str = "ip_addr.txt";
 
 pub fn verify_ip(ip: String) -> Result<IpAddr> {
-    let ip: IpAddr = ip.trim()
-                        .replace(" ", "")
-                        .parse()
-                        .map_err(|_| Error::BadIpAddr)?;
+    let ip: IpAddr = ip
+        .trim()
+        .replace(" ", "")
+        .parse()
+        .map_err(|_| Error::BadIpAddr)?;
 
     Ok(ip)
 }
@@ -23,9 +24,9 @@ pub fn set_ip(ip: String) -> Result<()> {
     let ip = verify_ip(ip)?;
 
     let home = dirs::home_dir().ok_or(Error::NoHomeDir)?;
-    
+
     if !home.exists() {
-        return Err(Error::NoHomeDir)
+        return Err(Error::NoHomeDir);
     }
 
     let switch_home_dir = home.join(".switch");
@@ -34,10 +35,8 @@ pub fn set_ip(ip: String) -> Result<()> {
         std::fs::create_dir(&switch_home_dir).map_err(|_| Error::CreateSwitchDirDenied)?;
     }
 
-    std::fs::write(
-        switch_home_dir.join(IP_ADDR_FILE),
-        ip.to_string()
-    ).map_err(|_| Error::WriteIpDenied)
+    std::fs::write(switch_home_dir.join(IP_ADDR_FILE), ip.to_string())
+        .map_err(|_| Error::WriteIpDenied)
 }
 
 pub fn show_ip() -> Result<()> {

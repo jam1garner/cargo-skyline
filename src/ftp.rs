@@ -1,8 +1,8 @@
-use std::net::{IpAddr, TcpStream};
+use std::fmt;
 use std::io::prelude::*;
 use std::io::{self, BufReader};
+use std::net::{IpAddr, TcpStream};
 use std::time::Duration;
-use std::fmt;
 
 #[derive(Debug)]
 pub enum FtpError {
@@ -14,13 +14,13 @@ pub enum FtpError {
 type Result<T> = std::result::Result<T, FtpError>;
 
 pub struct FtpClient {
-    pub tcp: BufReader<TcpStream>
+    pub tcp: BufReader<TcpStream>,
 }
 
 impl FtpClient {
     pub fn connect(ip: IpAddr) -> Result<Self> {
         let mut client = FtpClient {
-            tcp: BufReader::new(TcpStream::connect((ip, 5000))?)
+            tcp: BufReader::new(TcpStream::connect((ip, 5000))?),
         };
 
         let status = client.next()?.0;
@@ -28,9 +28,9 @@ impl FtpClient {
             Ok(client)
         } else {
             Err(FtpError::UnexpectedStatus(status))
-        } 
+        }
     }
-    
+
     pub fn next(&mut self) -> Result<(usize, String)> {
         let mut status = self.next_line()?;
         let line = status.split_off(4);
@@ -40,25 +40,30 @@ impl FtpClient {
 
     pub fn next_line(&mut self) -> Result<String> {
         let mut line = String::new();
-        self.tcp.read_line(&mut line)
-            .map_err(|e| FtpError::Io(e))?;
+        self.tcp.read_line(&mut line).map_err(|e| FtpError::Io(e))?;
 
-        #[cfg(feature = "debug")] {
+        #[cfg(feature = "debug")]
+        {
             println!("<FTP> {}", line.trim_end_matches("\n"));
         }
         Ok(line)
     }
 
     pub fn clear_status(&mut self) {
-        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(20)));
+        let _ = self
+            .tcp
+            .get_mut()
+            .set_read_timeout(Some(Duration::from_millis(20)));
         let mut dump = vec![];
         let _ = self.tcp.read_to_end(&mut dump);
-        let _ = self.tcp.get_mut().set_read_timeout(Some(Duration::from_millis(500)));
+        let _ = self
+            .tcp
+            .get_mut()
+            .set_read_timeout(Some(Duration::from_millis(500)));
     }
 
     pub fn login(&mut self, user: &str, pass: &str) -> Result<&mut Self> {
-        self.user(user)?
-            .pass(pass)
+        self.user(user)?.pass(pass)
     }
 
     pub fn expect_success(&mut self) -> Result<()> {
@@ -73,7 +78,8 @@ impl FtpClient {
     }
 
     pub fn send<D: std::fmt::Display>(&mut self, string: D) -> Result<()> {
-        #[cfg(feature = "debug")] {
+        #[cfg(feature = "debug")]
+        {
             println!("[FTP] {}", string);
         }
         write!(self.tcp.get_mut(), "{}\n", string)?;
@@ -91,9 +97,9 @@ impl FtpClient {
 
     pub fn pass(&mut self, password: &str) -> Result<&mut Self> {
         self.send(format!("PASS {}", password))?;
-        
+
         self.expect_success()?;
-        
+
         Ok(self)
     }
 
@@ -105,25 +111,31 @@ impl FtpClient {
     pub fn open_passive_channel(&mut self) -> Result<(String, TcpStream)> {
         self.clear_status();
         self.send("PASV")?;
-        
+
         let ip = loop {
             match self.next()? {
-                (227, ip) => {
-                    break ip
-                }
+                (227, ip) => break ip,
                 (status, _) if !(200..299).contains(&status) => {
                     return Err(FtpError::UnexpectedStatus(status))
                 }
-                _ => continue
+                _ => continue,
             };
         };
 
-        let ip: Vec<_> = ip.split(",").map(String::from).map(|mut x| { x.retain(char::is_numeric); x }).collect();
+        let ip: Vec<_> = ip
+            .split(",")
+            .map(String::from)
+            .map(|mut x| {
+                x.retain(char::is_numeric);
+                x
+            })
+            .collect();
 
         if ip.len() < 6 {
             Err(FtpError::ParseFail)
         } else {
-            let ip: String = ip[0..4].join(".") + ":" + &((int(&ip[4])? << 8) + int(&ip[5])?).to_string();
+            let ip: String =
+                ip[0..4].join(".") + ":" + &((int(&ip[4])? << 8) + int(&ip[5])?).to_string();
 
             let stream = TcpStream::connect(&ip)?;
 
@@ -143,7 +155,7 @@ impl FtpClient {
         let mut string = String::new();
 
         channel.read_to_string(&mut string)?;
-        
+
         Ok(string)
     }
 
@@ -151,11 +163,11 @@ impl FtpClient {
         self.clear_status();
         let (_, mut channel) = match self.open_passive_channel() {
             Err(FtpError::UnexpectedStatus(550)) => {
-                    return Ok(false);
-            },
+                return Ok(false);
+            }
             x => x,
-        }.unwrap();
-
+        }
+        .unwrap();
 
         self.send(format!("LIST {}", path.as_ref()))?;
 
@@ -166,13 +178,11 @@ impl FtpClient {
         let _ = self.next_line().unwrap();
 
         // Return true if stream is non-empty, i.e. the listing contains an item
-        Ok(
-            if channel.read(&mut [0; 2][..])? > 1 {
-                true
-            } else {
-                false
-            }
-        )
+        Ok(if channel.read(&mut [0; 2][..])? > 1 {
+            true
+        } else {
+            false
+        })
     }
 
     pub fn change_dir<S: AsRef<str>>(&mut self, path: S) -> Result<()> {
@@ -204,13 +214,13 @@ impl FtpClient {
         let (_ip, mut channel) = self.open_passive_channel()?;
 
         //println!("Transferring data over {}...", ip);
-        
+
         self.send(format!("STOR {}", path.as_ref()))?;
 
         channel.write_all(file.as_ref())?;
 
         std::thread::sleep(Duration::from_millis(500));
-        
+
         let _ = self.next_line()?;
         //let _ = dbg!(self.next_line()?);
         Ok(())
@@ -220,7 +230,6 @@ impl FtpClient {
 fn int(s: &str) -> Result<usize> {
     s.parse().map_err(|_| FtpError::ParseFail)
 }
-
 
 impl From<io::Error> for FtpError {
     fn from(err: io::Error) -> Self {
@@ -233,7 +242,7 @@ impl fmt::Display for FtpError {
         match self {
             Self::ParseFail => write!(f, "Failed to parse"),
             Self::Io(io) => write!(f, "IoError: {}", io),
-            Self::UnexpectedStatus(status) => write!(f, "Unexpected status {}", status)
+            Self::UnexpectedStatus(status) => write!(f, "Unexpected status {}", status),
         }
     }
 }
