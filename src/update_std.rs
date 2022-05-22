@@ -1,14 +1,15 @@
 use crate::Error;
+use crate::build::get_rustup_home;
 
-use std::convert::TryInto;
+use std::{fs, env};
 use std::io::Cursor;
+use std::convert::TryInto;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::{env, fs};
+use std::process::{Stdio, Command};
 
-use indicatif::{ProgressBar, ProgressStyle};
-use octocrab::models::repos::Asset;
 use zip::ZipArchive;
+use octocrab::models::repos::Asset;
+use indicatif::{ProgressBar, ProgressStyle};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -24,8 +25,79 @@ fn get_cargo_dir() -> PathBuf {
         .ensure_exists()
 }
 
+const NIGHTLY: &str = "nightly-2022-04-14";
+
+fn get_original_toolchain() -> Result<PathBuf, Error> {
+    let toolchain = get_rustup_home()?
+        .push_join("toolchains")
+        .push_join(format!("{}-{}", NIGHTLY, TARGET));
+
+    if toolchain.exists() {
+        Ok(toolchain)
+    } else {
+        let install_succeed = Command::new("rustup")
+            .args(["toolchain", "add", NIGHTLY])
+            .status()
+            .map_err(|_| Error::RustupToolchainAddFailed)?
+            .success();
+
+        (install_succeed && toolchain.exists())
+            .then(|| toolchain)
+            .ok_or(Error::RustupToolchainAddFailed)
+    }
+}
+
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
+    fs::create_dir_all(&dst)?;
+
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
+const TEMPORARY_URL: &str = "https://github.com/Raytwo/rust";
+const TEMPORARY_BRANCH: &str = "skyline";
+
+fn create_modified_toolchain() -> Result<(), Error> {
+    let toolchain = get_toolchain();
+
+    let _ = fs::remove_dir_all(&toolchain);
+
+    copy_dir_all(get_original_toolchain()?, &toolchain).map_err(|_| Error::ToolchainCopyFailed)?;
+
+    let src_dir = toolchain.join("lib/rustlib/src");
+    if src_dir.exists() {
+        let _ = fs::remove_dir_all(&src_dir);
+    }
+
+    let clone_success = Command::new("git")
+        .args(&["clone", "--recurse-submodules", "--depth", "1", "--branch"])
+        .arg(TEMPORARY_BRANCH)
+        .arg(TEMPORARY_URL)
+        .arg(&src_dir)
+        .status()
+        .map_err(|_| Error::GitNotInstalled)?
+        .success();
+
+    if clone_success {
+        Ok(())
+    } else {
+        Err(Error::StdCloneFailed)
+    }
+}
+
 fn get_cargo_skyline_dir() -> PathBuf {
-    get_cargo_dir().push_join("skyline").ensure_exists()
+    get_cargo_dir()
+        .push_join("skyline")
+        .ensure_exists()
 }
 
 fn get_skyline_toolchain_dir() -> PathBuf {
@@ -41,7 +113,8 @@ fn get_toolchain() -> PathBuf {
 }
 
 fn get_version_file() -> PathBuf {
-    get_toolchain().push_join("version")
+    get_toolchain()
+        .push_join("version")
 }
 
 fn get_current_version() -> Option<String> {
@@ -59,8 +132,7 @@ impl Update {
     }
 
     fn get_asset(&self) -> Result<&Asset, Error> {
-        self.0
-            .assets
+        self.0.assets
             .iter()
             .find(|assert| assert.name.contains(&TARGET))
             .ok_or(Error::HostNotSupported)
@@ -85,7 +157,7 @@ impl Update {
 
         pb.finish_with_message("downloaded");
         println!("Update downloaded!");
-
+            
         Ok(data)
     }
 }
@@ -175,17 +247,15 @@ pub fn update_std(repo: &str, tag: Option<&str>) -> Result<(), Error> {
             std::io::copy(&mut file_in_zip, &mut file).expect("Failed to write to file");
 
             #[cfg(unix)]
-            if !out_path
-                .extension()
-                .map(|ext| ext.to_str() == Some("rlib"))
-                .unwrap_or(false)
-            {
-                file.set_permissions(fs::Permissions::from_mode(0o775))
-                    .unwrap();
+            if !out_path.extension().map(|ext| ext.to_str() == Some("rlib")).unwrap_or(false) {
+                file.set_permissions(fs::Permissions::from_mode(0o775)).unwrap();
             }
         }
 
-        fs::write(get_version_file(), update.version()).expect("Failed to write version file");
+        fs::write(
+            get_version_file(),
+            update.version()
+        ).expect("Failed to write version file");
 
         rustup_toolchain_link("skyline", &toolchain)?;
     } else {

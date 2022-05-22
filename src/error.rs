@@ -29,6 +29,10 @@ pub enum Error {
     DownloadFailed,
     RustupNotFound,
     RustupLinkFailed,
+    RustupToolchainAddFailed,
+    ToolchainCopyFailed,
+    GitNotInstalled,
+    StdCloneFailed,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
