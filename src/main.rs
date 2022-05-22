@@ -348,36 +348,42 @@ fn main() {
     };
 
     if let Err(err) = result {
+        let error = "ERROR".red();
+
         match err {
-            Error::NoIpFound => eprintln!("{}: {}", "ERROR".red(), error::NO_IP),
-            Error::BadIpAddr => eprintln!("{}: {}", "ERROR".red(), error::BAD_IP_ADDR),
+            Error::NoIpFound => eprintln!("{}: {}", error, error::NO_IP),
+            Error::BadIpAddr => eprintln!("{}: {}", error, error::BAD_IP_ADDR),
             Error::FtpError(ftp_err) => {
                 eprintln!("{}{}","An FTP Error Occurred: ".red(), ftp_err)
             }
-            Error::NoHomeDir => eprintln!("{}: No home directory could be found", "ERROR".red()),
-            Error::NoPathFound => eprintln!("{}: No environment variable PATH could be found.", "ERROR".red()),
+            Error::NoHomeDir => eprintln!("{}: No home directory could be found", error),
+            Error::NoPathFound => eprintln!("{}: No environment variable PATH could be found.", error),
             Error::CreateSwitchDirDenied
-                => eprintln!("{}: Could not create $HOME/.switch", "ERROR".red()),
-            Error::WriteIpDenied => eprintln!("{}: Could not write IP to file", "ERROR".red()),
+                => eprintln!("{}: Could not create $HOME/.switch", error),
+            Error::WriteIpDenied => eprintln!("{}: Could not write IP to file", error),
             //Error::NoCargoToml => eprintln!("{}", "No Cargo.toml could be found. Make sure you are within your plugin directory.".red()),
             //Error::BadCargoToml => eprintln!("{}", "Cargo.toml is formatted incorrectly.".red()),
             Error::NoTitleId => error::no_title_id(),
             Error::FailParseCargoStream => eprintln!("{}", "Unable to parse cargo output stream"),
             Error::CargoError(err) => eprintln!("{}{}", "CargoError: ".red(), err),
             Error::ExitStatus(code) => std::process::exit(code),
-            Error::FailWriteNro => eprintln!("{}: Unable to convert file from ELF to NRO", "ERROR".red()),
+            Error::FailWriteNro => eprintln!("{}: Unable to convert file from ELF to NRO", error),
             Error::IoError(err) => eprintln!("{}{}", "IoError: ".red(), err),
-            Error::DownloadError => eprintln!("{}: Failed to download latest release of Skyline. An internet connection is required.", "ERROR".red()),
-            Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", "ERROR".red()),
-            Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", "ERROR".red()),
-            Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", "ERROR".red()),
-            Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", "ERROR".red()),
-            Error::GithubError => eprintln!("{}: failed to get the latest release from github", "ERROR".red()),
-            Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", "ERROR".red()),
-            Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", "ERROR".red()),
-            Error::DownloadFailed => eprintln!("{}: the update failed to download.", "ERROR".red()),
-            Error::RustupNotFound => eprintln!("{}: rustup could not be executed, make sure it is installed.", "ERROR".red()),
-            Error::RustupLinkFailed => eprintln!("{}: rustup could not link the skyline toolchain.", "ERROR".red()),
+            Error::DownloadError => eprintln!("{}: Failed to download latest release of Skyline. An internet connection is required.", error),
+            Error::ZipError => eprintln!("{}: Failed to read Skyline release zip. Either corrupted or missing files.", error),
+            Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", error),
+            Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", error),
+            Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", error),
+            Error::GithubError => eprintln!("{}: failed to get the latest release from github", error),
+            Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", error),
+            Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", error),
+            Error::DownloadFailed => eprintln!("{}: the update failed to download.", error),
+            Error::RustupNotFound => eprintln!("{}: rustup could not be executed, make sure it is installed.", error),
+            Error::RustupLinkFailed => eprintln!("{}: rustup could not link the skyline toolchain.", error),
+            Error::RustupToolchainAddFailed => eprintln!("{}: rustup could not install the backing toolchain", error),
+            Error::ToolchainCopyFailed => eprintln!("{}: could not copy the backing toolchain", error),
+            Error::GitNotInstalled => eprintln!("{}: git is not installed, please install it", error),
+            Error::StdCloneFailed => eprintln!("{}: std fork failed to clone", error),
         }
 
         std::process::exit(1);

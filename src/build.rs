@@ -5,20 +5,22 @@ use std::env;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-fn get_toolchain_bin_dir() -> Result<PathBuf> {
-    let rustup_home = env::var("RUSTUP_HOME").map(PathBuf::from).or_else(|_| {
+pub(crate) fn get_rustup_home() -> Result<PathBuf> {
+    env::var("RUSTUP_HOME").map(PathBuf::from).or_else(|_| {
         dirs::home_dir()
             .map(|home| home.join(".rustup"))
             .ok_or(Error::NoHomeDir)
-    })?;
+    })
+}
 
+fn get_toolchain_bin_dir() -> Result<PathBuf> {
     let rel_path = if cfg!(windows) {
         r"toolchains\*\lib\rustlib\*\bin\"
     } else {
         r"toolchains/*/lib/rustlib/*/bin/"
     };
 
-    let search_path = rustup_home.join(rel_path);
+    let search_path = get_rustup_home()?.join(rel_path);
 
     glob::glob(
         search_path
