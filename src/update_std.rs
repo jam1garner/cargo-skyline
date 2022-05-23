@@ -91,7 +91,11 @@ fn ensure_target_json_exists() {
 }
 
 fn target_json() -> String {
-    let linker_script = linker_script_path();
+    let linker_script = if cfg!(windows) {
+        linker_script_path().to_str().unwrap().replace("\\", "/").into()
+    } else {
+        linker_script_path()
+    };
 
     format!(
         r#"{{
