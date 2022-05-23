@@ -1,4 +1,5 @@
 use crate::error::{Error, Result};
+use crate::update_std::target_json_path;
 use cargo_metadata::Message;
 use linkle::format::nxo::NxoFile;
 use std::env;
@@ -36,7 +37,7 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
 
 #[derive(Copy, Clone, PartialEq)]
 enum CargoCommand {
-    Rustc,
+    Build,
     Check,
     Clippy,
     Doc,
@@ -45,7 +46,7 @@ enum CargoCommand {
 impl CargoCommand {
     fn to_str(self) -> &'static str {
         match self {
-            CargoCommand::Rustc => "rustc",
+            CargoCommand::Build => "build",
             CargoCommand::Check => "check",
             CargoCommand::Clippy => "clippy",
             CargoCommand::Doc => "doc",
@@ -62,18 +63,20 @@ pub fn clippy() -> Result<()> {
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
-    cargo_run_command(CargoCommand::Rustc, args)?.ok_or(Error::FailParseCargoStream)
+    cargo_run_command(CargoCommand::Build, args)?.ok_or(Error::FailParseCargoStream)
 }
 
 fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<PathBuf>> {
     crate::update_std::check_std_installed()?;
 
+    let target_json_path = target_json_path();
+
     // Ensure rust-lld is added to the PATH on Windows
-    if !Command::new("rust-lld")
+    if Command::new("rust-lld")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .is_ok()
+        .is_err()
         || cfg!(windows)
     {
         let toolchain_bin_dir = get_toolchain_bin_dir()?;
@@ -88,27 +91,21 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
         env::set_var("PATH", &new_path);
     }
 
-    let rustc_options = if command == CargoCommand::Rustc {
-        &["-C", "link-arg=-Tlink.ld"][..]
-    } else {
-        &[][..]
-    };
-
-    // cargo +skyline rustc --target aarch64-skyline-switch -- -C link-arg=-Tlink.ld
+    // SKYLINE_ADD_NRO_HEADER=1 RUSTFLAGS="--cfg skyline_std_v3" cargo +skyline-v3 build --target ~/.cargo/skyline/aarch64-skyline-switch.json -Z build-std=core,alloc,std,panic_abort
     let mut command = Command::new("cargo")
-        .arg("+skyline")
+        .arg("+skyline-v3")
         .args(&[
             command.to_str(),
             "--message-format=json-diagnostic-rendered-ansi",
             "--color",
             "always",
             "--target",
-            "aarch64-skyline-switch",
         ])
+        .arg(&target_json_path)
+        .args(&["-Z", "build-std=core,alloc,std,panic_abort"])
         .args(args)
-        .arg("--")
-        .args(rustc_options)
         .env("SKYLINE_ADD_NRO_HEADER", "1")
+        .env("RUSTFLAGS", "--cfg skyline_std_v3")
         .current_dir(env::current_dir()?)
         .stdout(Stdio::piped())
         .spawn()

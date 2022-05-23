@@ -269,7 +269,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-skyline"
-version = "2.2.2"
+version = "3.0.0"
 dependencies = [
  "cargo_metadata 0.10.0",
  "dialoguer",
