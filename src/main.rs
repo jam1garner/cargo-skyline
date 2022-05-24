@@ -35,7 +35,23 @@ enum SubCommands {
     Check,
     #[structopt(about = "Emit beginner-helpful lints and warnings")]
     Clippy {
-        args: Vec<String>,
+        #[structopt(long)]
+        no_deps: bool,
+
+        #[structopt(long)]
+        fix: bool,
+
+        #[structopt(short, long)]
+        features: Option<String>,
+
+        #[structopt(long)]
+        all_features: bool,
+
+        #[structopt(long)]
+        no_default_features: bool,
+
+        #[structopt(last = true)]
+        opts: Vec<String>,
     },
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
@@ -293,7 +309,41 @@ fn main() {
             no_default_features,
         } => build::build(args, release, nso, features, no_default_features),
         Check => build::check(),
-        Clippy { args } => build::clippy(args),
+        Clippy {
+            no_deps,
+            fix,
+            features,
+            all_features,
+            no_default_features,
+            opts,
+        } => {
+            let mut args = Vec::new();
+
+            if no_deps {
+                args.push("--no-deps".into());
+            }
+
+            if fix {
+                args.push("--fix".into());
+            }
+
+            if let Some(features) = features {
+                args.push("--features".into());
+                args.push(features);
+            }
+
+            if all_features {
+                args.push("--all-features".into());
+            }
+
+            if no_default_features {
+                args.push("--no-default-features".into());
+            }
+
+            args.extend(opts);
+            
+            build::clippy(args)
+        },
         Run {
             ip,
             title_id,
