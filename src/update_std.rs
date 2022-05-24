@@ -1,18 +1,18 @@
 use crate::build::get_rustup_home;
 use crate::Error;
 
-use std::convert::TryInto;
-use std::io::Cursor;
+//use std::convert::TryInto;
+//use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::{env, fs};
 
-use indicatif::{ProgressBar, ProgressStyle};
-use octocrab::models::repos::Asset;
-use zip::ZipArchive;
+//use indicatif::{ProgressBar, ProgressStyle};
+//use octocrab::models::repos::Asset;
+//use zip::ZipArchive;
 
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
+//#[cfg(unix)]
+//use std::os::unix::fs::PermissionsExt;
 
 fn get_cargo_dir() -> PathBuf {
     env::var("CARGO_HOME")
@@ -36,7 +36,7 @@ fn get_original_toolchain() -> Result<PathBuf, Error> {
         Ok(toolchain)
     } else {
         let install_succeed = Command::new("rustup")
-            .args(["toolchain", "add", NIGHTLY])
+            .args(&["toolchain", "add", NIGHTLY])
             .status()
             .map_err(|_| Error::RustupToolchainAddFailed)?
             .success();
@@ -92,7 +92,11 @@ fn ensure_target_json_exists() {
 
 fn target_json() -> String {
     let linker_script = if cfg!(windows) {
-        linker_script_path().to_str().unwrap().replace("\\", "/").into()
+        linker_script_path()
+            .to_str()
+            .unwrap()
+            .replace('\\', "/")
+            .into()
     } else {
         linker_script_path()
     };
@@ -199,77 +203,77 @@ fn get_toolchain() -> PathBuf {
         .ensure_exists()
 }
 
-fn get_version_file() -> PathBuf {
-    get_toolchain().push_join("version")
-}
-
-fn get_current_version() -> Option<String> {
-    fs::read_to_string(get_version_file().if_exists()?).ok()
-}
-
-#[derive(Debug)]
-struct Update(octocrab::models::repos::Release);
-
+//fn get_version_file() -> PathBuf {
+//    get_toolchain().push_join("version")
+//}
+//
+//fn get_current_version() -> Option<String> {
+//    fs::read_to_string(get_version_file().if_exists()?).ok()
+//}
+//
+//#[derive(Debug)]
+//struct Update(octocrab::models::repos::Release);
+//
 const TARGET: &str = env!("TARGET");
-
-impl Update {
-    fn version(&self) -> String {
-        self.0.tag_name.clone()
-    }
-
-    fn get_asset(&self) -> Result<&Asset, Error> {
-        self.0
-            .assets
-            .iter()
-            .find(|assert| assert.name.contains(&TARGET))
-            .ok_or(Error::HostNotSupported)
-    }
-
-    #[tokio::main(flavor = "current_thread")]
-    async fn download(&self) -> Result<Vec<u8>, Error> {
-        let asset = self.get_asset()?;
-        let total_size = asset.size.try_into().unwrap();
-        let mut data = Vec::with_capacity(asset.size as usize);
-        let mut download = reqwest::get(asset.browser_download_url.clone()).await?;
-
-        println!("Downloading update...");
-        let pb = ProgressBar::new(total_size);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.green/white}] {bytes}/{total_bytes} ({eta})")
-            .progress_chars("=>-"));
-        while let Some(chunk) = download.chunk().await? {
-            data.extend_from_slice(&chunk);
-            pb.inc(chunk.len() as u64);
-        }
-
-        pb.finish_with_message("downloaded");
-        println!("Update downloaded!");
-
-        Ok(data)
-    }
-}
-
-#[tokio::main(flavor = "current_thread")]
-async fn get_update(owner: &str, repo: &str) -> Result<Update, Error> {
-    octocrab::instance()
-        .repos(owner, repo)
-        .releases()
-        .get_latest()
-        .await
-        .map(Update)
-        .map_err(Error::from)
-}
-
-#[tokio::main(flavor = "current_thread")]
-async fn get_update_by_tag(owner: &str, repo: &str, tag: &str) -> Result<Update, Error> {
-    octocrab::instance()
-        .repos(owner, repo)
-        .releases()
-        .get_by_tag(tag)
-        .await
-        .map(Update)
-        .map_err(Error::from)
-}
+//
+//impl Update {
+//    fn version(&self) -> String {
+//        self.0.tag_name.clone()
+//    }
+//
+//    fn get_asset(&self) -> Result<&Asset, Error> {
+//        self.0
+//            .assets
+//            .iter()
+//            .find(|assert| assert.name.contains(&TARGET))
+//            .ok_or(Error::HostNotSupported)
+//    }
+//
+//    #[tokio::main(flavor = "current_thread")]
+//    async fn download(&self) -> Result<Vec<u8>, Error> {
+//        let asset = self.get_asset()?;
+//        let total_size = asset.size.try_into().unwrap();
+//        let mut data = Vec::with_capacity(asset.size as usize);
+//        let mut download = reqwest::get(asset.browser_download_url.clone()).await?;
+//
+//        println!("Downloading update...");
+//        let pb = ProgressBar::new(total_size);
+//        pb.set_style(ProgressStyle::default_bar()
+//            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.green/white}] {bytes}/{total_bytes} ({eta})")
+//            .progress_chars("=>-"));
+//        while let Some(chunk) = download.chunk().await? {
+//            data.extend_from_slice(&chunk);
+//            pb.inc(chunk.len() as u64);
+//        }
+//
+//        pb.finish_with_message("downloaded");
+//        println!("Update downloaded!");
+//
+//        Ok(data)
+//    }
+//}
+//
+//#[tokio::main(flavor = "current_thread")]
+//async fn get_update(owner: &str, repo: &str) -> Result<Update, Error> {
+//    octocrab::instance()
+//        .repos(owner, repo)
+//        .releases()
+//        .get_latest()
+//        .await
+//        .map(Update)
+//        .map_err(Error::from)
+//}
+//
+//#[tokio::main(flavor = "current_thread")]
+//async fn get_update_by_tag(owner: &str, repo: &str, tag: &str) -> Result<Update, Error> {
+//    octocrab::instance()
+//        .repos(owner, repo)
+//        .releases()
+//        .get_by_tag(tag)
+//        .await
+//        .map(Update)
+//        .map_err(Error::from)
+//}
 
 pub fn check_std_installed() -> Result<(), Error> {
     ensure_target_json_exists();
@@ -311,8 +315,8 @@ fn rustup_toolchain_link(name: &str, path: &Path) -> Result<(), Error> {
     }
 }
 
-pub fn update_std(repo: &str, tag: Option<&str>) -> Result<(), Error> {
-    create_modified_toolchain();
+pub fn update_std(_repo: &str, _tag: Option<&str>) -> Result<(), Error> {
+    create_modified_toolchain()?;
     //let components: Vec<&str> = repo.split('/').collect();
     //let [owner, repo]: [&str; 2] = components.try_into().map_err(|_| Error::InvalidRepo)?;
     //let update = if let Some(tag) = tag {

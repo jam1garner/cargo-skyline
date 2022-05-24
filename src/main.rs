@@ -341,9 +341,9 @@ fn main() {
             }
 
             args.extend(opts);
-            
+
             build::clippy(args)
-        },
+        }
         Run {
             ip,
             title_id,
@@ -416,7 +416,7 @@ fn main() {
             //Error::NoCargoToml => eprintln!("{}", "No Cargo.toml could be found. Make sure you are within your plugin directory.".red()),
             //Error::BadCargoToml => eprintln!("{}", "Cargo.toml is formatted incorrectly.".red()),
             Error::NoTitleId => error::no_title_id(),
-            Error::FailParseCargoStream => eprintln!("{}", "Unable to parse cargo output stream"),
+            Error::FailParseCargoStream => eprintln!("Unable to parse cargo output stream"),
             Error::CargoError(err) => eprintln!("{}{}", "CargoError: ".red(), err),
             Error::ExitStatus(code) => std::process::exit(code),
             Error::FailWriteNro => eprintln!("{}: Unable to convert file from ELF to NRO", error),
@@ -427,8 +427,8 @@ fn main() {
             Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", error),
             Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", error),
             Error::GithubError => eprintln!("{}: failed to get the latest release from github", error),
-            Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", error),
-            Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", error),
+            //Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", error),
+            //Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", error),
             Error::DownloadFailed => eprintln!("{}: the update failed to download.", error),
             Error::RustupNotFound => eprintln!("{}: rustup could not be executed, make sure it is installed.", error),
             Error::RustupLinkFailed => eprintln!("{}: rustup could not link the skyline toolchain.", error),

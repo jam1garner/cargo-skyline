@@ -40,7 +40,7 @@ impl FtpClient {
 
     pub fn next_line(&mut self) -> Result<String> {
         let mut line = String::new();
-        self.tcp.read_line(&mut line).map_err(|e| FtpError::Io(e))?;
+        self.tcp.read_line(&mut line).map_err(FtpError::Io)?;
 
         #[cfg(feature = "debug")]
         {
@@ -82,7 +82,7 @@ impl FtpClient {
         {
             println!("[FTP] {}", string);
         }
-        write!(self.tcp.get_mut(), "{}\n", string)?;
+        writeln!(self.tcp.get_mut(), "{}", string)?;
 
         Ok(())
     }
@@ -123,7 +123,7 @@ impl FtpClient {
         };
 
         let ip: Vec<_> = ip
-            .split(",")
+            .split(',')
             .map(String::from)
             .map(|mut x| {
                 x.retain(char::is_numeric);
@@ -178,11 +178,7 @@ impl FtpClient {
         let _ = self.next_line().unwrap();
 
         // Return true if stream is non-empty, i.e. the listing contains an item
-        Ok(if channel.read(&mut [0; 2][..])? > 1 {
-            true
-        } else {
-            false
-        })
+        Ok(channel.read(&mut [0; 2][..])? > 1)
     }
 
     pub fn change_dir<S: AsRef<str>>(&mut self, path: S) -> Result<()> {

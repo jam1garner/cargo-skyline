@@ -35,7 +35,7 @@ fn get_toolchain_bin_dir() -> Result<PathBuf> {
     .unwrap()
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 enum CargoCommand {
     Build,
     Check,

@@ -6,7 +6,7 @@ const IP_ADDR_FILE: &str = "ip_addr.txt";
 pub fn verify_ip(ip: String) -> Result<IpAddr> {
     let ip: IpAddr = ip
         .trim()
-        .replace(" ", "")
+        .replace(' ', "")
         .parse()
         .map_err(|_| Error::BadIpAddr)?;
 
