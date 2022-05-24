@@ -50,7 +50,7 @@ pub fn package(
     let metadata = cargo_info::get_metadata()?;
 
     let title_id = title_id
-        .or_else(|| metadata.title_id.as_deref())
+        .or(metadata.title_id.as_deref())
         .ok_or(Error::NoTitleId)?;
 
     let exefs = if include_skyline {
@@ -76,10 +76,10 @@ pub fn package(
         let main_npdm = metadata
             .npdm_path
             .as_ref()
-            .map(|path| fs::read(path))
+            .map(fs::read)
             .transpose()
             .map_err(|_| Error::NoNpdmFileFound)?;
-        let generated_npdm = crate::installer::generate_npdm(&title_id);
+        let generated_npdm = crate::installer::generate_npdm(title_id);
         let main_npdm = main_npdm.as_ref().unwrap_or_else(|| {
             eprintln!("\n{}: defaulting to a generated NPDM.", "Warning".yellow());
             eprintln!(

@@ -2,6 +2,7 @@ use crate::ftp::FtpError;
 use owo_colors::OwoColorize;
 use std::io;
 
+#[allow(clippy::enum_variant_names)]
 pub enum Error {
     NoIpFound,
     BadIpAddr,
@@ -24,8 +25,8 @@ pub enum Error {
     AbsSwitchPath,
     BadSdPath,
     GithubError,
-    InvalidRepo,
-    HostNotSupported,
+    //InvalidRepo,
+    //HostNotSupported,
     DownloadFailed,
     RustupNotFound,
     RustupLinkFailed,

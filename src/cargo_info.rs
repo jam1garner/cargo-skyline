@@ -52,7 +52,7 @@ fn get_dep_urls(md: &serde_json::Value) -> Option<Vec<Dependency>> {
             .as_object()?
             .get("plugin-dependencies")?
             .as_array()?
-            .into_iter()
+            .iter()
             .map(|x| {
                 let dep = x.as_object().unwrap();
                 let name = dep.get("name").unwrap().as_str().unwrap().into();
@@ -82,7 +82,7 @@ pub fn get_metadata() -> Result<Metadata> {
         .unwrap()
         .lines()
         .find(|line| line.starts_with('{'))
-        .ok_or_else(|| cargo_metadata::Error::NoJson)?;
+        .ok_or(cargo_metadata::Error::NoJson)?;
 
     let metadata = MetadataCommand::parse(stdout)?;
 
@@ -91,7 +91,7 @@ pub fn get_metadata() -> Result<Metadata> {
         .first()
         .unwrap()
         .repr
-        .split(" ")
+        .split(' ')
         .next()
         .unwrap()
         .to_string();

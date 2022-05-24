@@ -161,8 +161,7 @@ pub fn install(
     } else {
         nro_path
             .file_name()
-            .map(|x| x.to_str())
-            .flatten()
+            .and_then(|x| x.to_str())
             .ok_or(Error::FailWriteNro)?
     };
 
@@ -329,10 +328,7 @@ pub fn cp(ip: Option<String>, title_id: Option<String>, src: String, dest: Strin
     }
 
     println!("Transferring file to {}...", install_path);
-    client.put(
-        install_path,
-        std::fs::read(src_path.to_str().unwrap().to_string())?,
-    )?;
+    client.put(install_path, std::fs::read(src_path.to_str().unwrap())?)?;
 
     Ok(())
 }
