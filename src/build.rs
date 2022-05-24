@@ -58,8 +58,8 @@ pub fn check() -> Result<()> {
     cargo_run_command(CargoCommand::Check, Vec::new()).map(|_| ())
 }
 
-pub fn clippy() -> Result<()> {
-    cargo_run_command(CargoCommand::Clippy, Vec::new()).map(|_| ())
+pub fn clippy(args: Vec<String>) -> Result<()> {
+    cargo_run_command(CargoCommand::Clippy, args).map(|_| ())
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
