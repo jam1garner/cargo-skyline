@@ -34,7 +34,9 @@ enum SubCommands {
     #[structopt(about = "Check if the current plugin builds and emit any errors found")]
     Check,
     #[structopt(about = "Emit beginner-helpful lints and warnings")]
-    Clippy,
+    Clippy {
+        args: Vec<String>,
+    },
     #[structopt(about = "Build the current plugin as an NRO")]
     Build {
         #[structopt(long)]
@@ -291,7 +293,7 @@ fn main() {
             no_default_features,
         } => build::build(args, release, nso, features, no_default_features),
         Check => build::check(),
-        Clippy => build::clippy(),
+        Clippy { args } => build::clippy(args),
         Run {
             ip,
             title_id,
