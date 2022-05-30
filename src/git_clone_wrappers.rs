@@ -38,6 +38,8 @@ pub fn new_plugin(name: String, git_url: String, git_branch: String) -> Result<(
             replace(&format!("{}/{}", name, path), "skyline_rs_template", &name)?;
         }
 
+        fs::remove_dir_all(&format!("{}/.git", name))?;
+
         let _ = fs::remove_file(&format!("{}/{}", name, ".github/workflows/rustdoc.yml"));
     }
 
