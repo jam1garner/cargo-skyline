@@ -64,7 +64,7 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result
 }
 
 const TEMPORARY_URL: &str = "https://github.com/skyline-rs/rust-src";
-const TEMPORARY_BRANCH: &str = "master";
+const TEMPORARY_BRANCH: &str = "skyline";
 
 pub fn target_json_path() -> PathBuf {
     get_cargo_skyline_dir().push_join("aarch64-skyline-switch.json")
