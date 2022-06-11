@@ -32,7 +32,10 @@ enum SubCommands {
         template_git_branch: String,
     },
     #[structopt(about = "Check if the current plugin builds and emit any errors found")]
-    Check,
+    Check {
+        #[structopt(long)]
+        json: bool,
+    },
     #[structopt(about = "Emit beginner-helpful lints and warnings")]
     Clippy {
         #[structopt(long)]
@@ -49,6 +52,9 @@ enum SubCommands {
 
         #[structopt(long)]
         no_default_features: bool,
+
+        #[structopt(long)]
+        json: bool,
 
         #[structopt(last = true)]
         opts: Vec<String>,
@@ -308,13 +314,14 @@ fn main() {
             features,
             no_default_features,
         } => build::build(args, release, nso, features, no_default_features),
-        Check => build::check(),
+        Check { json } => build::check(json),
         Clippy {
             no_deps,
             fix,
             features,
             all_features,
             no_default_features,
+            json,
             opts,
         } => {
             let mut args = Vec::new();
@@ -342,7 +349,7 @@ fn main() {
 
             args.extend(opts);
 
-            build::clippy(args)
+            build::clippy(args, json)
         }
         Run {
             ip,
