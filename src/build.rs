@@ -3,6 +3,7 @@ use crate::update_std::target_json_path;
 use cargo_metadata::Message;
 use linkle::format::nxo::NxoFile;
 use std::env;
+use std::io::BufReader;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -54,19 +55,24 @@ impl CargoCommand {
     }
 }
 
-pub fn check() -> Result<()> {
-    cargo_run_command(CargoCommand::Check, Vec::new()).map(|_| ())
+pub fn check(json: bool) -> Result<()> {
+    cargo_run_command(CargoCommand::Check, Vec::new(), json, false).map(|_| ())
 }
 
-pub fn clippy(args: Vec<String>) -> Result<()> {
-    cargo_run_command(CargoCommand::Clippy, args).map(|_| ())
+pub fn clippy(args: Vec<String>, json: bool) -> Result<()> {
+    cargo_run_command(CargoCommand::Clippy, args, json, false).map(|_| ())
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
-    cargo_run_command(CargoCommand::Build, args)?.ok_or(Error::FailParseCargoStream)
+    cargo_run_command(CargoCommand::Build, args, false, true)?.ok_or(Error::FailParseCargoStream)
 }
 
-fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<PathBuf>> {
+fn cargo_run_command(
+    command: CargoCommand,
+    args: Vec<String>,
+    json: bool,
+    capture_output: bool,
+) -> Result<Option<PathBuf>> {
     crate::update_std::check_std_installed()?;
 
     let target_json_path = target_json_path();
@@ -91,12 +97,19 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
         env::set_var("PATH", &new_path);
     }
 
+    let message_format_arg = if json {
+        "--message-format=json,json-diagnostic-rendered-ansi"
+    } else {
+        "--message-format=json-diagnostic-rendered-ansi"
+    };
+
     // SKYLINE_ADD_NRO_HEADER=1 RUSTFLAGS="--cfg skyline_std_v3" cargo +skyline-v3 build --target ~/.cargo/skyline/aarch64-skyline-switch.json -Z build-std=core,alloc,std,panic_abort
-    let mut command = Command::new("cargo")
+    let mut cmd = Command::new("cargo");
+    let mut stdout = cmd
         .arg("+skyline-v3")
         .args(&[
             command.to_str(),
-            "--message-format=json-diagnostic-rendered-ansi",
+            message_format_arg,
             "--color",
             "always",
             "--target",
@@ -106,29 +119,33 @@ fn cargo_run_command(command: CargoCommand, args: Vec<String>) -> Result<Option<
         .args(args)
         .env("SKYLINE_ADD_NRO_HEADER", "1")
         .env("RUSTFLAGS", "--cfg skyline_std_v3")
-        .current_dir(env::current_dir()?)
-        .stdout(Stdio::piped())
-        .spawn()
-        .unwrap();
+        .current_dir(env::current_dir()?);
 
-    let last_artifact = cargo_metadata::parse_messages(command.stdout.as_mut().unwrap())
-        .collect::<std::result::Result<Vec<_>, _>>()
-        .map_err(|_| Error::FailParseCargoStream)?
-        .into_iter()
-        .filter_map(|message| {
-            if let Message::CompilerArtifact(artifact) = message {
-                Some(artifact)
-            } else if let Message::CompilerMessage(message) = message {
-                if let Some(msg) = message.message.rendered {
-                    println!("{}", msg);
+    if capture_output {
+        stdout = stdout.stdout(Stdio::piped());
+    }
+
+    let mut command = stdout.spawn().unwrap();
+
+    let last_artifact =
+        cargo_metadata::Message::parse_stream(BufReader::new(command.stdout.as_mut().unwrap()))
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|_| Error::FailParseCargoStream)?
+            .into_iter()
+            .filter_map(|message| {
+                if let Message::CompilerArtifact(artifact) = message {
+                    Some(artifact)
+                } else if let Message::CompilerMessage(message) = message {
+                    if let Some(msg) = message.message.rendered {
+                        println!("{}", msg);
+                    }
+
+                    None
+                } else {
+                    None
                 }
-
-                None
-            } else {
-                None
-            }
-        })
-        .last();
+            })
+            .last();
 
     let exit_status = command.wait().unwrap();
 
@@ -196,7 +213,7 @@ pub fn build(
 }
 
 pub fn doc(args: Vec<String>) -> Result<()> {
-    cargo_run_command(CargoCommand::Doc, args)?;
+    cargo_run_command(CargoCommand::Doc, args, false, false)?;
 
     Ok(())
 }
