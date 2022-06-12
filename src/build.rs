@@ -3,7 +3,7 @@ use crate::update_std::target_json_path;
 use cargo_metadata::Message;
 use linkle::format::nxo::NxoFile;
 use std::env;
-use std::io::BufReader;
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -56,23 +56,35 @@ impl CargoCommand {
 }
 
 pub fn check(json: bool) -> Result<()> {
-    cargo_run_command(CargoCommand::Check, Vec::new(), json, false).map(|_| ())
+    cargo_run_command(CargoCommand::Check, Vec::new(), json).map(|_| ())
 }
 
 pub fn clippy(args: Vec<String>, json: bool) -> Result<()> {
-    cargo_run_command(CargoCommand::Clippy, args, json, false).map(|_| ())
+    cargo_run_command(CargoCommand::Clippy, args, json).map(|_| ())
 }
 
 pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
-    cargo_run_command(CargoCommand::Build, args, false, true)?.ok_or(Error::FailParseCargoStream)
+    let cargo_output = cargo_run_command(CargoCommand::Build, args, false)?;
+    let last_artifact = cargo_output
+        .into_iter()
+        .filter_map(|message| {
+            if let Message::CompilerArtifact(artifact) = message {
+                Some(artifact)
+            } else {
+                None
+            }
+        })
+        .last()
+        .ok_or(Error::FailParseCargoStream)?;
+
+    Ok(last_artifact.filenames[0].clone())
 }
 
 fn cargo_run_command(
     command: CargoCommand,
     args: Vec<String>,
-    json: bool,
-    capture_output: bool,
-) -> Result<Option<PathBuf>> {
+    print_cargo_messages: bool,
+) -> Result<Vec<Message>> {
     crate::update_std::check_std_installed()?;
 
     let target_json_path = target_json_path();
@@ -97,19 +109,12 @@ fn cargo_run_command(
         env::set_var("PATH", &new_path);
     }
 
-    let message_format_arg = if json {
-        "--message-format=json,json-diagnostic-rendered-ansi"
-    } else {
-        "--message-format=json-diagnostic-rendered-ansi"
-    };
-
     // SKYLINE_ADD_NRO_HEADER=1 RUSTFLAGS="--cfg skyline_std_v3" cargo +skyline-v3 build --target ~/.cargo/skyline/aarch64-skyline-switch.json -Z build-std=core,alloc,std,panic_abort
-    let mut cmd = Command::new("cargo");
-    let mut stdout = cmd
+    let mut command = Command::new("cargo")
         .arg("+skyline-v3")
         .args(&[
             command.to_str(),
-            message_format_arg,
+            "--message-format=json-diagnostic-rendered-ansi",
             "--color",
             "always",
             "--target",
@@ -119,42 +124,40 @@ fn cargo_run_command(
         .args(args)
         .env("SKYLINE_ADD_NRO_HEADER", "1")
         .env("RUSTFLAGS", "--cfg skyline_std_v3")
-        .current_dir(env::current_dir()?);
+        .current_dir(env::current_dir()?)
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
 
-    if capture_output {
-        stdout = stdout.stdout(Stdio::piped());
-    }
-
-    let mut command = stdout.spawn().unwrap();
-
-    let last_artifact =
-        cargo_metadata::Message::parse_stream(BufReader::new(command.stdout.as_mut().unwrap()))
-            .collect::<std::result::Result<Vec<_>, _>>()
-            .map_err(|_| Error::FailParseCargoStream)?
-            .into_iter()
-            .filter_map(|message| {
-                if let Message::CompilerArtifact(artifact) = message {
-                    Some(artifact)
-                } else if let Message::CompilerMessage(message) = message {
-                    if let Some(msg) = message.message.rendered {
-                        println!("{}", msg);
-                    }
-
-                    None
-                } else {
-                    None
+    let cargo_messages = BufReader::new(command.stdout.as_mut().unwrap())
+        .lines()
+        .inspect(|line| {
+            if print_cargo_messages {
+                if let Ok(msg) = line {
+                    println!("{}", msg)
                 }
-            })
-            .last();
+            }
+        })
+        .map(|line| {
+            // Inlined implementation of cargo_metadata's MessageIter
+            line.map(|it| serde_json::from_str(&it).unwrap_or(Message::TextLine(it)))
+        })
+        .inspect(|message| {
+            if let Ok(Message::CompilerMessage(compiler_message)) = message {
+                if let Some(msg) = &compiler_message.message.rendered {
+                    println!("{}", msg);
+                }
+            }
+        })
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(|_| Error::FailParseCargoStream)?;
 
     let exit_status = command.wait().unwrap();
 
     if !exit_status.success() {
         Err(Error::ExitStatus(exit_status.code().unwrap_or(1)))
-    } else if let Some(artifact) = last_artifact {
-        Ok(Some(artifact.filenames[0].clone()))
     } else {
-        Ok(None)
+        Ok(cargo_messages)
     }
 }
 
@@ -213,7 +216,7 @@ pub fn build(
 }
 
 pub fn doc(args: Vec<String>) -> Result<()> {
-    cargo_run_command(CargoCommand::Doc, args, false, false)?;
+    cargo_run_command(CargoCommand::Doc, args, false)?;
 
     Ok(())
 }
