@@ -1,18 +1,9 @@
 use crate::build::get_rustup_home;
 use crate::Error;
 
-//use std::convert::TryInto;
-//use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::{env, fs};
-
-//use indicatif::{ProgressBar, ProgressStyle};
-//use octocrab::models::repos::Asset;
-//use zip::ZipArchive;
-
-//#[cfg(unix)]
-//use std::os::unix::fs::PermissionsExt;
 
 fn get_cargo_dir() -> PathBuf {
     env::var("CARGO_HOME")
@@ -25,18 +16,55 @@ fn get_cargo_dir() -> PathBuf {
         .ensure_exists()
 }
 
-const NIGHTLY: &str = "nightly-2022-05-21";
+const ORG: &str = "skyline-rs";
+const REPO: &str = "rust-src";
+const BRANCH: &str = "skyline";
+
+fn url() -> String {
+    format!("https://github.com/{}/{}", ORG, REPO)
+}
+
+#[tokio::main(flavor = "current_thread")]
+async fn get_base_nightly() -> Result<String, Error> {
+    let octocrab = octocrab::instance();
+
+    let commit = octocrab
+        .repos(ORG, REPO)
+        .list_commits()
+        .branch(BRANCH)
+        .author("bors")
+        .per_page(1)
+        .send()
+        .await?
+        .into_iter()
+        .next()
+        .ok_or(Error::NoBaseCommit)?;
+
+    Ok(format!(
+        "nightly-{}",
+        commit
+            .commit
+            .author
+            .expect("No author for the last bors commit")
+            .date
+            .expect("No date for last bors commit")
+            .format("%Y-%m-%d")
+    ))
+}
 
 fn get_original_toolchain() -> Result<PathBuf, Error> {
+    let base_nightly = get_base_nightly()?;
+
     let toolchain = get_rustup_home()?
         .push_join("toolchains")
-        .push_join(format!("{}-{}", NIGHTLY, TARGET));
+        .push_join(format!("{}-{}", base_nightly, TARGET));
 
+    println!("Using {base_nightly} as a base for installation...");
     if toolchain.exists() {
         Ok(toolchain)
     } else {
         let install_succeed = Command::new("rustup")
-            .args(&["toolchain", "add", NIGHTLY])
+            .args(&["toolchain", "add", &base_nightly])
             .status()
             .map_err(|_| Error::RustupToolchainAddFailed)?
             .success();
@@ -62,9 +90,6 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result
     }
     Ok(())
 }
-
-const TEMPORARY_URL: &str = "https://github.com/skyline-rs/rust-src";
-const TEMPORARY_BRANCH: &str = "skyline";
 
 pub fn target_json_path() -> PathBuf {
     get_cargo_skyline_dir().push_join("aarch64-skyline-switch.json")
@@ -171,8 +196,8 @@ pub fn create_modified_toolchain() -> Result<(), Error> {
             "1",
             "--branch",
         ])
-        .arg(TEMPORARY_BRANCH)
-        .arg(TEMPORARY_URL)
+        .arg(BRANCH)
+        .arg(url())
         .arg(&src_dir)
         .status()
         .map_err(|_| Error::GitNotInstalled)?
@@ -203,77 +228,7 @@ fn get_toolchain() -> PathBuf {
         .ensure_exists()
 }
 
-//fn get_version_file() -> PathBuf {
-//    get_toolchain().push_join("version")
-//}
-//
-//fn get_current_version() -> Option<String> {
-//    fs::read_to_string(get_version_file().if_exists()?).ok()
-//}
-//
-//#[derive(Debug)]
-//struct Update(octocrab::models::repos::Release);
-//
 const TARGET: &str = env!("TARGET");
-//
-//impl Update {
-//    fn version(&self) -> String {
-//        self.0.tag_name.clone()
-//    }
-//
-//    fn get_asset(&self) -> Result<&Asset, Error> {
-//        self.0
-//            .assets
-//            .iter()
-//            .find(|assert| assert.name.contains(&TARGET))
-//            .ok_or(Error::HostNotSupported)
-//    }
-//
-//    #[tokio::main(flavor = "current_thread")]
-//    async fn download(&self) -> Result<Vec<u8>, Error> {
-//        let asset = self.get_asset()?;
-//        let total_size = asset.size.try_into().unwrap();
-//        let mut data = Vec::with_capacity(asset.size as usize);
-//        let mut download = reqwest::get(asset.browser_download_url.clone()).await?;
-//
-//        println!("Downloading update...");
-//        let pb = ProgressBar::new(total_size);
-//        pb.set_style(ProgressStyle::default_bar()
-//            .template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.green/white}] {bytes}/{total_bytes} ({eta})")
-//            .progress_chars("=>-"));
-//        while let Some(chunk) = download.chunk().await? {
-//            data.extend_from_slice(&chunk);
-//            pb.inc(chunk.len() as u64);
-//        }
-//
-//        pb.finish_with_message("downloaded");
-//        println!("Update downloaded!");
-//
-//        Ok(data)
-//    }
-//}
-//
-//#[tokio::main(flavor = "current_thread")]
-//async fn get_update(owner: &str, repo: &str) -> Result<Update, Error> {
-//    octocrab::instance()
-//        .repos(owner, repo)
-//        .releases()
-//        .get_latest()
-//        .await
-//        .map(Update)
-//        .map_err(Error::from)
-//}
-//
-//#[tokio::main(flavor = "current_thread")]
-//async fn get_update_by_tag(owner: &str, repo: &str, tag: &str) -> Result<Update, Error> {
-//    octocrab::instance()
-//        .repos(owner, repo)
-//        .releases()
-//        .get_by_tag(tag)
-//        .await
-//        .map(Update)
-//        .map_err(Error::from)
-//}
 
 pub fn check_std_installed() -> Result<(), Error> {
     ensure_target_json_exists();
@@ -317,50 +272,6 @@ fn rustup_toolchain_link(name: &str, path: &Path) -> Result<(), Error> {
 
 pub fn update_std(_repo: &str, _tag: Option<&str>) -> Result<(), Error> {
     create_modified_toolchain()?;
-    //let components: Vec<&str> = repo.split('/').collect();
-    //let [owner, repo]: [&str; 2] = components.try_into().map_err(|_| Error::InvalidRepo)?;
-    //let update = if let Some(tag) = tag {
-    //    get_update_by_tag(owner, repo, tag)?
-    //} else {
-    //    get_update(owner, repo)?
-    //};
-
-    //if get_current_version() != Some(update.version()) {
-    //    let zip_bytes = update.download()?;
-
-    //    // remove old toolchain if it exists
-    //    let _ = fs::remove_dir_all(get_toolchain());
-
-    //    let toolchain = get_toolchain();
-
-    //    let mut zip = ZipArchive::new(Cursor::new(zip_bytes)).unwrap();
-    //    for i in 0..zip.len() {
-    //        let mut file_in_zip = zip.by_index(i).unwrap();
-    //        let out_path = toolchain.join(file_in_zip.name());
-    //        if let Some(parent) = out_path.parent() {
-    //            let _ = fs::create_dir_all(parent);
-    //        }
-    //        let mut file = fs::File::create(&out_path).unwrap();
-
-    //        std::io::copy(&mut file_in_zip, &mut file).expect("Failed to write to file");
-
-    //        #[cfg(unix)]
-    //        if !out_path
-    //            .extension()
-    //            .map(|ext| ext.to_str() == Some("rlib"))
-    //            .unwrap_or(false)
-    //        {
-    //            file.set_permissions(fs::Permissions::from_mode(0o775))
-    //                .unwrap();
-    //        }
-    //    }
-
-    //    fs::write(get_version_file(), update.version()).expect("Failed to write version file");
-
-    //    rustup_toolchain_link("skyline", &toolchain)?;
-    //} else {
-    //    println!("The latest version of the toolchain is already installed.")
-    //}
 
     Ok(())
 }
