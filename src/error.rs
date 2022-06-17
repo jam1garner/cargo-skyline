@@ -34,6 +34,7 @@ pub enum Error {
     ToolchainCopyFailed,
     GitNotInstalled,
     StdCloneFailed,
+    NoBaseCommit,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

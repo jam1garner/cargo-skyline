@@ -256,7 +256,10 @@ enum SubCommands {
         )]
         open: bool,
     },
-    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+
+    #[structopt(
+        about = "Clean a pre-existing project files no longer needed for the latest version"
+    )]
     CleanProject,
 
     #[structopt(about = "Restart the given game using restart-plugin")]
@@ -443,6 +446,7 @@ fn main() {
             Error::ToolchainCopyFailed => eprintln!("{}: could not copy the backing toolchain", error),
             Error::GitNotInstalled => eprintln!("{}: git is not installed, please install it", error),
             Error::StdCloneFailed => eprintln!("{}: std fork failed to clone", error),
+            Error::NoBaseCommit => eprintln!("{}: No base rust-src commit was found, cannot determined correct nightly.", error),
         }
 
         std::process::exit(1);
@@ -471,14 +475,11 @@ fn update() -> Result<()> {
 }
 
 use std::fs;
-use std::path::Path;
 
 const DEFAULT_CONFIG: &str = "[build]\ntarget = \"aarch64-skyline-switch\"";
 
 fn clean_project() -> Result<()> {
-    if Path::new("rust-toolchain").exists() {
-        fs::write("rust-toolchain", "stable").unwrap();
-    }
+    let _ = fs::remove_file("rust-toolchain");
 
     let delete_config = fs::read_to_string(".cargo/config")
         .ok()
