@@ -166,8 +166,23 @@ fn target_json() -> String {
     )
 }
 
-pub fn create_modified_toolchain() -> Result<(), Error> {
+pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
     let toolchain = get_toolchain();
+
+    if pull {
+        let pull_success = Command::new("git")
+            .current_dir(toolchain.join("lib/rustlib/src/rust"))
+            .args(&["pull", "--recurse-submodules", "-q"])
+            .status()
+            .map_err(|_| Error::GitNotInstalled)?
+            .success();
+
+        return if pull_success {
+            Ok(())
+        } else {
+            Err(Error::StdCloneFailed)
+        };
+    }
 
     let _ = fs::remove_dir_all(&toolchain);
 
@@ -176,6 +191,7 @@ pub fn create_modified_toolchain() -> Result<(), Error> {
     copy_dir_all(&original_toolchain, &toolchain).map_err(|_| Error::ToolchainCopyFailed)?;
 
     let src_dir = toolchain.join("lib/rustlib/src");
+
     if src_dir.exists() {
         let _ = fs::remove_dir_all(&src_dir);
     }
@@ -188,14 +204,13 @@ pub fn create_modified_toolchain() -> Result<(), Error> {
 
     // TODO: make a progress bar or something
     let clone_success = Command::new("git")
-        .args(&[
-            "clone",
-            "--recurse-submodules",
-            "--shallow-submodules",
-            "--depth",
-            "1",
-            "--branch",
-        ])
+        .args(&["clone", "--recurse-submodules"])
+        .args(if deep {
+            &[]
+        } else {
+            &["--shallow-submodules", "--depth", "1"][..]
+        })
+        .arg("--branch")
         .arg(BRANCH)
         .arg(url())
         .arg(&src_dir)
@@ -246,7 +261,7 @@ pub fn check_std_installed() -> Result<(), Error> {
             .unwrap();
 
         if should_install {
-            create_modified_toolchain()
+            create_modified_toolchain(false, false)
         } else {
             std::process::exit(1);
         }
@@ -270,8 +285,8 @@ fn rustup_toolchain_link(name: &str, path: &Path) -> Result<(), Error> {
     }
 }
 
-pub fn update_std(_repo: &str, _tag: Option<&str>) -> Result<(), Error> {
-    create_modified_toolchain()?;
+pub fn update_std(_repo: &str, _tag: Option<&str>, deep: bool, pull: bool) -> Result<(), Error> {
+    create_modified_toolchain(deep, pull)?;
 
     Ok(())
 }
