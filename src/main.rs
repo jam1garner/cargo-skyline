@@ -8,9 +8,9 @@ mod cargo_info;
 mod error;
 mod ftp;
 mod game_paths;
-mod git_clone_wrappers;
 mod installer;
 mod ip_addr;
+mod new_plugin;
 mod package;
 mod tcp_listen;
 mod update_std;
@@ -18,19 +18,7 @@ mod update_std;
 #[derive(StructOpt)]
 enum SubCommands {
     #[structopt(about = "Create a new plugin from a template")]
-    New {
-        name: String,
-
-        #[structopt(
-            short,
-            long,
-            default_value = "https://github.com/ultimate-research/skyline-rs-template.git"
-        )]
-        template_git: String,
-
-        #[structopt(short = "-b", long, default_value = "master")]
-        template_git_branch: String,
-    },
+    New { name: String },
     #[structopt(about = "Check if the current plugin builds and emit any errors found")]
     Check {
         #[structopt(long)]
@@ -372,11 +360,7 @@ fn main() {
             no_default_features,
         ),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
-        New {
-            name,
-            template_git,
-            template_git_branch,
-        } => git_clone_wrappers::new_plugin(name, template_git, template_git_branch),
+        New { name } => new_plugin::new_plugin(name),
         UpdateStd { repo, tag } => update_std::update_std(&repo, tag.as_deref()),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id, path } => installer::list(ip, title_id, path),
@@ -447,6 +431,8 @@ fn main() {
             Error::GitNotInstalled => eprintln!("{}: git is not installed, please install it", error),
             Error::StdCloneFailed => eprintln!("{}: std fork failed to clone", error),
             Error::NoBaseCommit => eprintln!("{}: No base rust-src commit was found, cannot determined correct nightly.", error),
+            Error::ProjectAlreadyExists => eprintln!("{}: a folder with that name already exists", error),
+            Error::FailCreateProject => eprintln!("{}: project files could not be written to disk", error),
         }
 
         std::process::exit(1);
