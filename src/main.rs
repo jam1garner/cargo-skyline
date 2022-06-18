@@ -140,6 +140,19 @@ enum SubCommands {
 
         #[structopt(short, long)]
         tag: Option<String>,
+
+        #[structopt(
+            long,
+            about = "Rather than shallow clone, perform a deep clone, allowing changes to be pushed afterwards"
+        )]
+        deep: bool,
+
+        #[structopt(
+            long,
+            about = "Rather than re-clone, pull new commits. Assumes non-shallow clone.",
+            conflicts_with = "deep"
+        )]
+        pull: bool,
     },
     #[structopt(
         about = "Listen for logs being output from a switch running skyline at the given ip"
@@ -361,7 +374,12 @@ fn main() {
         ),
         Restart { ip, title_id } => installer::restart_game(ip, title_id),
         New { name } => new_plugin::new_plugin(name),
-        UpdateStd { repo, tag } => update_std::update_std(&repo, tag.as_deref()),
+        UpdateStd {
+            repo,
+            tag,
+            deep,
+            pull,
+        } => update_std::update_std(&repo, tag.as_deref(), deep, pull),
         Listen { ip } => tcp_listen::listen(ip),
         List { ip, title_id, path } => installer::list(ip, title_id, path),
         Rm {
