@@ -35,6 +35,8 @@ pub enum Error {
     GitNotInstalled,
     StdCloneFailed,
     NoBaseCommit,
+    ProjectAlreadyExists,
+    FailCreateProject,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
