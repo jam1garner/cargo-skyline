@@ -1,7 +1,9 @@
 use error::{Error, Result};
 use owo_colors::OwoColorize;
-use std::process::Command;
 use structopt::StructOpt;
+
+use std::fs;
+use std::process::Command;
 
 mod build;
 mod cargo_info;
@@ -278,6 +280,24 @@ fn main() {
 
     use SubCommands::*;
 
+    if !matches!(&subcommand, CleanProject) {
+        let default_config = fs::read_to_string(".cargo/config")
+            .ok()
+            .map(|config| config.trim().replace('\r', "") == DEFAULT_CONFIG)
+            .unwrap_or(false);
+
+        if default_config {
+            eprintln!(
+                "{}: outdated .cargo/config detected, this may cause issues.",
+                "WARN".yellow().bold()
+            );
+            eprintln!(
+                "   └ {}: consider running `cargo skyline clean-project`\n",
+                "HELP".cyan().bold()
+            );
+        }
+    }
+
     let result = match subcommand {
         Install {
             ip,
@@ -478,8 +498,6 @@ fn update() -> Result<()> {
     Ok(())
 }
 
-use std::fs;
-
 const DEFAULT_CONFIG: &str = "[build]\ntarget = \"aarch64-skyline-switch\"";
 
 fn clean_project() -> Result<()> {
@@ -489,7 +507,7 @@ fn clean_project() -> Result<()> {
 
     let delete_config = fs::read_to_string(".cargo/config")
         .ok()
-        .map(|config| config.trim() == DEFAULT_CONFIG)
+        .map(|config| config.trim().replace('\r', "") == DEFAULT_CONFIG)
         .unwrap_or(false);
 
     if delete_config {
