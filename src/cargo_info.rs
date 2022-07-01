@@ -69,7 +69,7 @@ pub fn get_metadata() -> Result<Metadata> {
     let output = MetadataCommand::new()
         //.other_options(["--target".to_string(), "aarch64-skyline-switch".to_string()])
         .cargo_command()?
-        .env("RUSTUP_TOOLCHAIN", "skyline")
+        .env("RUSTUP_TOOLCHAIN", "skyline-v3")
         .output()?;
 
     if !output.status.success() {
