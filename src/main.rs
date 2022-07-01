@@ -483,6 +483,8 @@ use std::fs;
 const DEFAULT_CONFIG: &str = "[build]\ntarget = \"aarch64-skyline-switch\"";
 
 fn clean_project() -> Result<()> {
+    Command::new("cargo").arg("clean").status()?;
+
     let _ = fs::remove_file("rust-toolchain");
 
     let delete_config = fs::read_to_string(".cargo/config")
@@ -498,8 +500,7 @@ fn clean_project() -> Result<()> {
     let _ = fs::remove_file("Xargo.toml");
     let _ = fs::remove_file("Cargo.lock");
     let _ = fs::remove_file("aarch64-skyline-switch.json");
-
-    Command::new("cargo").arg("clean").status()?;
+    let _ = fs::remove_file("link.ld");
 
     Ok(())
 }
