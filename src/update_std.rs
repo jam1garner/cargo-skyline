@@ -1,3 +1,5 @@
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+
 use crate::build::get_rustup_home;
 use crate::Error;
 
@@ -52,22 +54,66 @@ async fn get_base_nightly() -> Result<String, Error> {
     ))
 }
 
-fn get_original_toolchain() -> Result<PathBuf, Error> {
-    let base_nightly = get_base_nightly()?;
+fn get_original_toolchain(
+    base_nightly_progress: &ProgressBar,
+    progress: &ProgressBar,
+    success_style: ProgressStyle,
+    failed_style: ProgressStyle,
+) -> Result<PathBuf, Error> {
+    let base_nightly = std::thread::spawn(get_base_nightly);
+
+    while !base_nightly.is_finished() {
+        base_nightly_progress.tick();
+    }
+
+    let base_nightly = base_nightly.join().unwrap().map_err(|err| {
+        base_nightly_progress.set_style(failed_style.clone());
+        base_nightly_progress.finish_with_message("Failed to get find base nightly");
+
+        err
+    })?;
 
     let toolchain = get_rustup_home()?
         .push_join("toolchains")
         .push_join(format!("{}-{}", base_nightly, TARGET));
 
-    println!("Using {base_nightly} as a base for installation...");
+    progress.println(format!(
+        "Using {base_nightly} as a base for installation..."
+    ));
+
+    base_nightly_progress.set_style(success_style.clone());
+    base_nightly_progress.finish_with_message("Base nightly found");
+
     if toolchain.exists() {
         Ok(toolchain)
     } else {
-        let install_succeed = Command::new("rustup")
+        let mut rustup_cmd = Command::new("rustup")
             .args(&["toolchain", "add", &base_nightly])
-            .status()
-            .map_err(|_| Error::RustupToolchainAddFailed)?
-            .success();
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .stdin(Stdio::null())
+            .spawn()
+            .map_err(|_| Error::RustupToolchainAddFailed)?;
+
+        let err = |_| Error::RustupToolchainAddFailed;
+
+        let status = loop {
+            progress.tick();
+
+            if let Some(status) = rustup_cmd.try_wait().map_err(err)? {
+                break status;
+            }
+        };
+
+        let install_succeed = status.success();
+
+        if install_succeed {
+            progress.set_style(success_style);
+            progress.finish_with_message("Base toolchain downloaded");
+        } else {
+            progress.set_style(failed_style);
+            progress.finish_with_message("Failed to get find base nightly");
+        }
 
         (install_succeed && toolchain.exists())
             .then(|| toolchain)
@@ -167,6 +213,37 @@ fn target_json() -> String {
 }
 
 pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
+    let multiprogress = MultiProgress::new();
+    let style =
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} {spinner} {wide_msg}");
+    let finished_style =
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ✔️ {wide_msg}");
+    let failed_style =
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ❌ {wide_msg}");
+
+    let get_base_nightly_pb = multiprogress.add(
+        ProgressBar::new_spinner()
+            .with_message("Searching git history for base nightly")
+            .with_prefix("[1/3]")
+            .with_style(style.clone()),
+    );
+
+    let base_chain_pb = multiprogress.add(
+        ProgressBar::new_spinner()
+            .with_message("Downloading base toolchain")
+            .with_prefix("[2/3]")
+            .with_style(style.clone()),
+    );
+
+    let std_clone_pb = multiprogress.add(
+        ProgressBar::new_spinner()
+            .with_message("Downloading custom Rust standard library")
+            .with_prefix("[3/3]")
+            .with_style(style),
+    );
+
+    std::thread::spawn(move || multiprogress.join());
+
     let toolchain = get_toolchain();
 
     if pull {
@@ -186,7 +263,12 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
 
     let _ = fs::remove_dir_all(&toolchain);
 
-    let original_toolchain = get_original_toolchain()?;
+    let original_toolchain = get_original_toolchain(
+        &get_base_nightly_pb,
+        &base_chain_pb,
+        finished_style.clone(),
+        failed_style.clone(),
+    )?;
 
     copy_dir_all(&original_toolchain, &toolchain).map_err(|_| Error::ToolchainCopyFailed)?;
 
@@ -202,8 +284,7 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
 
     let src_dir = src_dir.push_join("rust");
 
-    // TODO: make a progress bar or something
-    let clone_success = Command::new("git")
+    let mut clone_cmd = Command::new("git")
         .args(&["clone", "--recurse-submodules"])
         .args(if deep {
             &[]
@@ -214,13 +295,34 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
         .arg(BRANCH)
         .arg(url())
         .arg(&src_dir)
-        .status()
-        .map_err(|_| Error::GitNotInstalled)?
-        .success();
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .stdin(Stdio::null())
+        .spawn()
+        .map_err(|_| Error::GitNotInstalled)?;
+
+    let clone_status = loop {
+        std_clone_pb.tick();
+
+        if let Some(status) = clone_cmd.try_wait()? {
+            break status;
+        }
+    };
+
+    std_clone_pb.set_style(if clone_status.success() {
+        finished_style
+    } else {
+        failed_style
+    });
+    std_clone_pb.finish_with_message(if clone_status.success() {
+        "Finished downloading custom Rust standard library"
+    } else {
+        "Failed to download custom Rust standard library"
+    });
 
     rustup_toolchain_link("skyline-v3", &toolchain)?;
 
-    if clone_success {
+    if clone_status.success() {
         Ok(())
     } else {
         Err(Error::StdCloneFailed)
