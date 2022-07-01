@@ -8,7 +8,7 @@ macro_rules! files {
         &[$(
             (
                 $path,
-                include_str!(concat!("../new-project-template/", $path)),
+                include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/new-project-template/", $path, ".template")),
             )
         ),*]
     };

@@ -213,13 +213,13 @@ dependencies = [
 name = "cargo-skyline"
 version = "3.0.0"
 dependencies = [
+ "cargo-skyline-octocrab",
  "cargo_metadata",
  "dialoguer",
  "dirs",
  "glob",
  "indicatif",
  "linkle",
- "octocrab",
  "owo-colors",
  "reqwest",
  "serde",
@@ -228,6 +228,29 @@ dependencies = [
  "tokio",
  "url",
  "zip",
+]
+
+[[package]]
+name = "cargo-skyline-octocrab"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dda14177ce4d945f9afe9d229c26b6b322679a37b6a2bb421a51ec892df65265"
+dependencies = [
+ "arc-swap",
+ "async-trait",
+ "base64",
+ "bytes",
+ "chrono",
+ "hyperx",
+ "jsonwebtoken",
+ "once_cell",
+ "reqwest",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "snafu 0.7.1",
+ "url",
 ]
 
 [[package]]
@@ -1016,28 +1039,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e42c982f2d955fac81dd7e1d0e1426a7d702acd9c98d19ab01083a6a0328c424"
 dependencies = [
  "memchr",
-]
-
-[[package]]
-name = "octocrab"
-version = "0.16.0"
-source = "git+https://github.com/jam1garner/octocrab?branch=feat-list-commits#c3c021cd291acca294978888d324eb7e68ff02b4"
-dependencies = [
- "arc-swap",
- "async-trait",
- "base64",
- "bytes",
- "chrono",
- "hyperx",
- "jsonwebtoken",
- "once_cell",
- "reqwest",
- "secrecy",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "snafu 0.7.1",
- "url",
 ]
 
 [[package]]
