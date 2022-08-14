@@ -109,9 +109,11 @@ fn cargo_run_command(
         env::set_var("PATH", &new_path);
     }
 
-    // SKYLINE_ADD_NRO_HEADER=1 RUSTFLAGS="--cfg skyline_std_v3" cargo +skyline-v3 build --target ~/.cargo/skyline/aarch64-skyline-switch.json -Z build-std=core,alloc,std,panic_abort
-    let mut command = Command::new("cargo")
-        .arg("+skyline-v3")
+    // rustup run skyline-v3 SKYLINE_ADD_NRO_HEADER=1 RUSTFLAGS="--cfg skyline_std_v3" cargo build --target ~/.cargo/skyline/aarch64-skyline-switch.json -Z build-std=core,alloc,std,panic_abort
+    let mut command = Command::new("rustup")
+        .arg("run")
+        .arg("skyline-v3")
+        .arg("cargo")
         .args(&[
             command.to_str(),
             "--message-format=json-diagnostic-rendered-ansi",
