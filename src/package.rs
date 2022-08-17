@@ -3,8 +3,11 @@ use crate::cargo_info;
 use crate::error::{Error, Result};
 use crate::game_paths::{get_npdm_path, get_plugin_nro_path, get_subsdk_path};
 use owo_colors::OwoColorize;
+use walkdir::WalkDir;
 use std::fs;
 use std::io::{Cursor, Read, Write};
+use std::path::Path;
+use std::path::PathBuf;
 use std::result::Result as StdResult;
 use zip::{ZipArchive, ZipWriter};
 
@@ -100,6 +103,33 @@ pub fn package(
             Default::default(),
         )?;
         zip.write_all(&exefs.unwrap().subsdk1)?;
+    }
+
+    for resource in &metadata.package_resources {
+        let local_path = &resource.local_path;
+        let output_path = &resource.package_path;
+
+        if Path::new(&local_path).is_dir() {
+            // Get all files in the directory and subdirectories
+            let paths: Vec<PathBuf> = WalkDir::new(&local_path).into_iter().flatten().filter(|entry| entry.file_type().is_file()).map(|entry| entry.path().to_owned()).collect();
+
+            for path in paths {
+                // Strip the local directory from the path we're processing and add the destination directory as prefix
+                zip.start_file(
+                    output_path.join(&path.strip_prefix(&local_path).unwrap()).to_str().unwrap(),
+                    Default::default(),
+                )?;
+    
+                zip.write_all(&std::fs::read(&path).map_err(|_| Error::PackageResourceMissing(path))?)?;
+            }
+        } else {
+            zip.start_file(
+                output_path.to_str().unwrap(),
+                Default::default(),
+            )?;
+
+            zip.write_all(&std::fs::read(&local_path).map_err(|_| Error::PackageResourceMissing(local_path.to_owned()))?)?;
+        }
     }
 
     println!("Finished building zip at '{}'", out_path);
