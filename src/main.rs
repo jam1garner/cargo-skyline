@@ -471,6 +471,7 @@ fn main() {
             Error::NoBaseCommit => eprintln!("{}: No base rust-src commit was found, cannot determined correct nightly.", error),
             Error::ProjectAlreadyExists => eprintln!("{}: a folder with that name already exists", error),
             Error::FailCreateProject => eprintln!("{}: project files could not be written to disk", error),
+            Error::PackageResourceMissing(path) => eprintln!("{}: Package resource '{}' specified in Cargo.toml not found at the specified path.", error, path.display()),
         }
 
         std::process::exit(1);

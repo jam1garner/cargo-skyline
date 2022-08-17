@@ -1,6 +1,6 @@
 use crate::ftp::FtpError;
 use owo_colors::OwoColorize;
-use std::io;
+use std::{io, path::PathBuf};
 
 #[allow(clippy::enum_variant_names)]
 pub enum Error {
@@ -37,6 +37,7 @@ pub enum Error {
     NoBaseCommit,
     ProjectAlreadyExists,
     FailCreateProject,
+    PackageResourceMissing(PathBuf)
 }
 
 pub type Result<T> = core::result::Result<T, Error>;

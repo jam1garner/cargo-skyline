@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::error::Result;
 use serde::Deserialize;
 
@@ -8,12 +10,19 @@ pub struct Metadata {
     pub npdm_path: Option<String>,
     pub subsdk_name: Option<String>,
     pub plugin_dependencies: Vec<Dependency>,
+    pub package_resources: Vec<PackageResource>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Dependency {
     pub name: String,
     pub url: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PackageResource {
+    pub local_path: PathBuf,
+    pub package_path: PathBuf,
 }
 
 fn get_title_id(md: &serde_json::Value) -> Option<String> {
@@ -58,6 +67,23 @@ fn get_dep_urls(md: &serde_json::Value) -> Option<Vec<Dependency>> {
                 let name = dep.get("name").unwrap().as_str().unwrap().into();
                 let url = dep.get("url").unwrap().as_str().unwrap().into();
                 Dependency { name, url }
+            })
+            .collect(),
+    )
+}
+
+fn get_package_deps(md: &serde_json::Value) -> Option<Vec<PackageResource>> {
+    Some(
+        md.get("skyline")?
+            .as_object()?
+            .get("package-resources")?
+            .as_array()?
+            .iter()
+            .map(|x| {
+                let dep = x.as_object().unwrap();
+                let local_path = dep.get("local").unwrap().as_str().unwrap().into();
+                let package_path = dep.get("package").unwrap().as_str().unwrap().into();
+                PackageResource { local_path, package_path }
             })
             .collect(),
     )
@@ -116,11 +142,17 @@ pub fn get_metadata() -> Result<Metadata> {
         x
     });
 
+    let package_resources = metadata.packages.iter().fold(vec![], |mut x, y| {
+        x.append(&mut get_package_deps(&y.metadata).unwrap_or_default());
+        x
+    });
+
     Ok(Metadata {
         name,
         title_id,
         npdm_path,
         subsdk_name,
         plugin_dependencies,
+        package_resources,
     })
 }
