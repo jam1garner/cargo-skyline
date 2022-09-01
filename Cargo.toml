@@ -1,6 +1,6 @@
 [package]
 name = "cargo-skyline"
-version = "3.1.0"
+version = "3.2.0"
 authors = ["jam1garner <jam@jam1.re>"]
 edition = "2021"
 description = "A cargo subcommand for working with Skyline plugins written in Rust"
