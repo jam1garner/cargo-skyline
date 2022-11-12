@@ -1,4 +1,4 @@
-FROM devkitpro/devkita64:20210726
+FROM devkitpro/devkita64:20220821
 
 USER root
 ENV USER root
@@ -18,9 +18,6 @@ RUN apt install --reinstall -y coreutils
 # Necessary for getting glibc, for some reason?
 RUN echo "deb http://ftp.us.debian.org/debian testing main contrib non-free" >> /etc/apt/sources.list
 
-RUN apt-get update
-RUN apt-get install build-essential -y
-
 ENV PATH "$PATH:/opt/devkitpro/devkitA64/bin"
 
 # Install Rust
@@ -36,3 +33,11 @@ RUN ~/.cargo/bin/rustup install stable
 RUN ~/.cargo/bin/cargo install cargo-skyline
 
 RUN ~/.cargo/bin/cargo skyline update-std
+
+ARG USERNAME=skyline
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
