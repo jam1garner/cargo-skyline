@@ -63,21 +63,28 @@ pub fn clippy(args: Vec<String>, json: bool) -> Result<()> {
     cargo_run_command(CargoCommand::Clippy, args, json).map(|_| ())
 }
 
-pub fn build_get_artifact(args: Vec<String>) -> Result<PathBuf> {
+pub fn build_get_artifacts(args: Vec<String>) -> Result<Vec<PathBuf>> {
     let cargo_output = cargo_run_command(CargoCommand::Build, args, false)?;
-    let last_artifact = cargo_output
+    let artifact_paths: Vec<_> = cargo_output
         .into_iter()
         .filter_map(|message| {
             if let Message::CompilerArtifact(artifact) = message {
-                Some(artifact)
+                if artifact.target.kind.iter().any(|kind| kind == "cdylib") {
+                    Some(artifact.filenames[0].clone())
+                } else {
+                    None
+                }
             } else {
                 None
             }
         })
-        .last()
-        .ok_or(Error::FailParseCargoStream)?;
+        .collect();
 
-    Ok(last_artifact.filenames[0].clone())
+    if artifact_paths.is_empty() {
+        return Err(Error::FailParseCargoStream);
+    }
+
+    Ok(artifact_paths)
 }
 
 fn cargo_run_command(
@@ -163,30 +170,42 @@ fn cargo_run_command(
     }
 }
 
-pub fn build_get_nro(args: Vec<String>) -> Result<PathBuf> {
-    let artifact = build_get_artifact(args)?;
+pub fn build_get_nros(args: Vec<String>) -> Result<Vec<PathBuf>> {
+    let artifacts = build_get_artifacts(args)?;
 
-    let nro_path = artifact.with_extension("nro");
+    let mut nro_paths = Vec::with_capacity(artifacts.len());
 
-    NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?.write_nro(
-        &mut std::fs::File::create(&nro_path).map_err(|_| Error::FailWriteNro)?,
-        None,
-        None,
-        None,
-    )?;
+    for artifact in &artifacts {
+        let path = artifact.with_extension("nro");
 
-    Ok(nro_path)
+        NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?.write_nro(
+            &mut std::fs::File::create(&path).map_err(|_| Error::FailWriteNro)?,
+            None,
+            None,
+            None,
+        )?;
+
+        nro_paths.push(path);
+    }
+
+    Ok(nro_paths)
 }
 
-pub fn build_get_nso(args: Vec<String>) -> Result<PathBuf> {
-    let artifact = build_get_artifact(args)?;
+pub fn build_get_nsos(args: Vec<String>) -> Result<Vec<PathBuf>> {
+    let artifacts = build_get_artifacts(args)?;
 
-    let nso_path = artifact.with_extension("nso");
+    let mut nso_paths = Vec::with_capacity(artifacts.len());
 
-    NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
-        .write_nso(&mut std::fs::File::create(&nso_path).map_err(|_| Error::FailWriteNro)?)?;
+    for artifact in &artifacts {
+        let path = artifact.with_extension("nso");
 
-    Ok(nso_path)
+        NxoFile::from_elf(artifact.to_str().ok_or(Error::FailWriteNro)?)?
+            .write_nso(&mut std::fs::File::create(&path).map_err(|_| Error::FailWriteNro)?)?;
+
+        nso_paths.push(path);
+    }
+
+    Ok(nso_paths)
 }
 
 pub fn build(
@@ -209,9 +228,9 @@ pub fn build(
     }
 
     if nso {
-        build_get_nso(args)?;
+        build_get_nsos(args)?;
     } else {
-        build_get_nro(args)?;
+        build_get_nros(args)?;
     }
 
     Ok(())

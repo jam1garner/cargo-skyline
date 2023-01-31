@@ -90,7 +90,7 @@ pub fn install(
         args.push("--no-default-features".to_owned());
     }
 
-    let nro_path = build::build_get_nro(args)?;
+    let nro_paths = build::build_get_nros(args)?;
 
     let ip = verify_ip(get_ip(ip)?)?;
 
@@ -130,7 +130,10 @@ pub fn install(
 
     // Ensure skyline is installed if it doesn't exist
     let subsdk_path = get_game_path(&title_id) + "/exefs/subsdk9";
-    if !client.file_exists(&subsdk_path).expect("Failed to check if subsdk9 exists") {
+    if !client
+        .file_exists(&subsdk_path)
+        .expect("Failed to check if subsdk9 exists")
+    {
         println!("Skyline subsdk not installed for the given title, downloading...");
         let exefs = crate::package::get_exefs(SKYLINE_URL)?;
         println!("Installing over subsdk9...");
@@ -138,7 +141,10 @@ pub fn install(
     }
 
     let npdm_path = get_game_path(&title_id) + "/exefs/main.npdm";
-    if !client.file_exists(&npdm_path).expect("Failed to check if NPDM exists") {
+    if !client
+        .file_exists(&npdm_path)
+        .expect("Failed to check if NPDM exists")
+    {
         println!("Skyline npdm not installed for the given title, generating and installing...");
         client.put(&npdm_path, generate_npdm(&title_id))?;
     }
@@ -156,20 +162,22 @@ pub fn install(
         }
     }
 
-    let nro_name = if path.ends_with(".nro") {
-        path.split('/').last().unwrap()
-    } else {
-        nro_path
-            .file_name()
-            .and_then(|x| x.to_str())
-            .ok_or(Error::FailWriteNro)?
-    };
+    for nro_path in nro_paths {
+        let nro_name = if path.ends_with(".nro") {
+            path.split('/').last().unwrap()
+        } else {
+            nro_path
+                .file_name()
+                .and_then(|x| x.to_str())
+                .ok_or(Error::FailWriteNro)?
+        };
 
-    println!("Transferring file...");
-    client.put(
-        format!("{}/{}", plugin_folder_path, nro_name),
-        std::fs::read(nro_path)?,
-    )?;
+        println!("Transferring file '{}'...", nro_path.display());
+        client.put(
+            format!("{}/{}", plugin_folder_path, nro_name),
+            std::fs::read(nro_path)?,
+        )?;
+    }
 
     Ok(())
 }

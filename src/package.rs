@@ -3,12 +3,12 @@ use crate::cargo_info;
 use crate::error::{Error, Result};
 use crate::game_paths::{get_npdm_path, get_plugin_nro_path, get_subsdk_path};
 use owo_colors::OwoColorize;
-use walkdir::WalkDir;
 use std::fs;
 use std::io::{Cursor, Read, Write};
 use std::path::Path;
 use std::path::PathBuf;
 use std::result::Result as StdResult;
+use walkdir::WalkDir;
 use zip::{ZipArchive, ZipWriter};
 
 pub struct Exefs {
@@ -46,9 +46,13 @@ pub fn package(
     include_skyline: bool,
 ) -> Result<()> {
     let args = vec![String::from("--release")];
-    let nro_path = build::build_get_nro(args)?;
-    let plugin_name = nro_path.file_name().unwrap().to_string_lossy();
-    println!("Built {:?}!", plugin_name);
+    let nro_paths = build::build_get_nros(args)?;
+    if nro_paths.len() == 1 {
+        let plugin_name = nro_paths[0].file_name().unwrap().to_string_lossy();
+        println!("Built {:?}!", plugin_name);
+    } else {
+        println!("Built {} plugins!", nro_paths.len());
+    }
 
     let metadata = cargo_info::get_metadata()?;
 
@@ -64,15 +68,18 @@ pub fn package(
     };
 
     println!("Building Zip File...");
-    let plugin_data = fs::read(&nro_path)?;
-
     let mut zip = ZipWriter::new(fs::File::create(out_path)?);
 
-    zip.start_file(
-        get_plugin_nro_path(title_id, plugin_name.as_ref())[1..].to_string(),
-        Default::default(),
-    )?;
-    zip.write_all(&plugin_data)?;
+    for nro_path in nro_paths {
+        let plugin_name = nro_path.file_name().unwrap().to_string_lossy();
+        let plugin_data = fs::read(&nro_path)?;
+
+        zip.start_file(
+            get_plugin_nro_path(title_id, plugin_name.as_ref())[1..].to_string(),
+            Default::default(),
+        )?;
+        zip.write_all(&plugin_data)?;
+    }
 
     if include_skyline {
         // main.npdm
@@ -111,24 +118,34 @@ pub fn package(
 
         if Path::new(&local_path).is_dir() {
             // Get all files in the directory and subdirectories
-            let paths: Vec<PathBuf> = WalkDir::new(&local_path).into_iter().flatten().filter(|entry| entry.file_type().is_file()).map(|entry| entry.path().to_owned()).collect();
+            let paths: Vec<PathBuf> = WalkDir::new(&local_path)
+                .into_iter()
+                .flatten()
+                .filter(|entry| entry.file_type().is_file())
+                .map(|entry| entry.path().to_owned())
+                .collect();
 
             for path in paths {
                 // Strip the local directory from the path we're processing and add the destination directory as prefix
                 zip.start_file(
-                    output_path.join(&path.strip_prefix(&local_path).unwrap()).to_str().unwrap(),
+                    output_path
+                        .join(&path.strip_prefix(&local_path).unwrap())
+                        .to_str()
+                        .unwrap(),
                     Default::default(),
                 )?;
-    
-                zip.write_all(&std::fs::read(&path).map_err(|_| Error::PackageResourceMissing(path))?)?;
+
+                zip.write_all(
+                    &std::fs::read(&path).map_err(|_| Error::PackageResourceMissing(path))?,
+                )?;
             }
         } else {
-            zip.start_file(
-                output_path.to_str().unwrap(),
-                Default::default(),
-            )?;
+            zip.start_file(output_path.to_str().unwrap(), Default::default())?;
 
-            zip.write_all(&std::fs::read(&local_path).map_err(|_| Error::PackageResourceMissing(local_path.to_owned()))?)?;
+            zip.write_all(
+                &std::fs::read(&local_path)
+                    .map_err(|_| Error::PackageResourceMissing(local_path.to_owned()))?,
+            )?;
         }
     }
 
