@@ -44,10 +44,17 @@ pub fn package(
     title_id: Option<&str>,
     out_path: &str,
     include_skyline: bool,
+    subsdk: bool,
 ) -> Result<()> {
     let args = vec![String::from("--release")];
-    let nro_path = build::build_get_nro(args)?;
-    let plugin_name = nro_path.file_name().unwrap().to_string_lossy();
+
+    let binary_path = if subsdk {
+        build::build_get_nso(args)?
+    } else {
+        build::build_get_nro(args)?
+    };
+
+    let plugin_name = binary_path.file_name().unwrap().to_string_lossy();
     println!("Built {:?}!", plugin_name);
 
     let metadata = cargo_info::get_metadata()?;
@@ -56,7 +63,7 @@ pub fn package(
         .or(metadata.title_id.as_deref())
         .ok_or(Error::NoTitleId)?;
 
-    let exefs = if include_skyline {
+    let exefs = if include_skyline && !subsdk {
         println!("Downloading latest Skyline release...");
         Some(get_exefs(skyline_url)?)
     } else {
@@ -64,26 +71,36 @@ pub fn package(
     };
 
     println!("Building Zip File...");
-    let plugin_data = fs::read(&nro_path)?;
+    let binary_data = fs::read(&binary_path)?;
 
     let mut zip = ZipWriter::new(fs::File::create(out_path)?);
 
+    let binary_install_path = if subsdk {
+        get_subsdk_path(title_id, metadata.subsdk_name.as_deref().unwrap_or("subsdk9"))[1..].to_string()
+    } else {
+        get_plugin_nro_path(title_id, plugin_name.as_ref())[1..].to_string()
+    };
+
     zip.start_file(
-        get_plugin_nro_path(title_id, plugin_name.as_ref())[1..].to_string(),
+        binary_install_path,
         Default::default(),
     )?;
-    zip.write_all(&plugin_data)?;
 
-    if include_skyline {
-        // main.npdm
-        let main_npdm = metadata
-            .npdm_path
-            .as_ref()
-            .map(fs::read)
-            .transpose()
-            .map_err(|_| Error::NoNpdmFileFound)?;
+    zip.write_all(&binary_data)?;
+
+    // main.npdm
+    let main_npdm = metadata
+        .npdm_path
+        .as_ref()
+        .map(fs::read)
+        .transpose()
+        .map_err(|_| Error::NoNpdmFileFound)?;
+
+    // Assuming we are building a subsdk, there are few reasons to also want Skyline
+    if include_skyline && !subsdk {
         let generated_npdm = crate::installer::generate_npdm(title_id);
-        let main_npdm = main_npdm.as_ref().unwrap_or_else(|| {
+        
+        main_npdm.as_ref().unwrap_or_else(|| {
             eprintln!("\n{}: defaulting to a generated NPDM.", "Warning".yellow());
             eprintln!(
                 "{}: To specify a custom npdm add the following to your Cargo.toml:",
@@ -93,8 +110,6 @@ pub fn package(
             eprintln!("{}\n", "custom-npdm = \"path/to/your.npdm\"".bright_blue());
             &generated_npdm
         });
-        zip.start_file(get_npdm_path(title_id)[1..].to_string(), Default::default())?;
-        zip.write_all(main_npdm)?;
 
         // subsdk
         let subsdk_name = metadata.subsdk_name.as_deref().unwrap_or("subsdk9");
@@ -103,6 +118,12 @@ pub fn package(
             Default::default(),
         )?;
         zip.write_all(&exefs.unwrap().subsdk1)?;
+    }
+
+    // We could want a custom NPDM instead of Skyline's, so write it here
+    if let Some(main_npdm) = main_npdm {
+        zip.start_file(get_npdm_path(title_id)[1..].to_string(), Default::default())?;
+        zip.write_all(&main_npdm)?;
     }
 
     for resource in &metadata.package_resources {

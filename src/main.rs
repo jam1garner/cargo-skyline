@@ -247,6 +247,12 @@ enum SubCommands {
             default_value = "target/release.zip"
         )]
         out_path: String,
+
+        #[structopt(
+            long,
+            about = "Build the project as a subsdk"
+        )]
+        subsdk: bool,
     },
     #[structopt(about = "Update libraries for current plugin folder")]
     Update,
@@ -419,11 +425,13 @@ fn main() {
             title_id,
             out_path,
             no_skyline,
+            subsdk,
         } => package::package(
             &skyline_release,
             title_id.as_deref(),
             &out_path,
             !no_skyline,
+            subsdk,
         ),
         Update => update(),
         Doc { open } => build::doc(if open { vec!["--open".into()] } else { vec![] }),
