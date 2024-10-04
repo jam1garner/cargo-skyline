@@ -466,7 +466,7 @@ fn main() {
             Error::NoNpdmFileFound => eprintln!("{}: Custom NPDM file specified in Cargo.toml not found at the specified path.", error),
             Error::AbsSwitchPath => eprintln!("{}: Absolute Switch paths must be prepended with \"sd:/\"", error),
             Error::BadSdPath => eprintln!("{}: Install paths must either start with \"rom:/\" or \"sd:/\"", error),
-            Error::GithubError => eprintln!("{}: failed to get the latest release from github", error),
+            Error::GithubError(_) => eprintln!("{}: failed to get the latest release from github", error),
             //Error::InvalidRepo => eprintln!("{}: repos must be in the form of `{{user}}/{{repo}}`", error),
             //Error::HostNotSupported => eprintln!("{}: your host platform is not supported.", error),
             Error::DownloadFailed => eprintln!("{}: the update failed to download.", error),
