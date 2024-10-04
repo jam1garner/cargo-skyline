@@ -68,7 +68,17 @@ fn get_original_toolchain(
 
     let base_nightly = base_nightly.join().unwrap().map_err(|err| {
         base_nightly_progress.set_style(failed_style.clone());
-        base_nightly_progress.finish_with_message("Failed to get find base nightly");
+
+        if let Error::GithubError(oct_err) = &err {
+            if let octocrab::Error::GitHub {
+                source,
+                backtrace: _,
+            } = oct_err {
+                base_nightly_progress.finish_with_message(format!("Failed to get find base nightly: {}", source.message))
+            }
+        } else {
+            base_nightly_progress.finish_with_message("Failed to get find base nightly");
+        }
 
         err
     })?;

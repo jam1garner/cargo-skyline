@@ -24,7 +24,7 @@ pub enum Error {
     ExitStatus(i32),
     AbsSwitchPath,
     BadSdPath,
-    GithubError,
+    GithubError(octocrab::Error),
     //InvalidRepo,
     //HostNotSupported,
     DownloadFailed,
@@ -82,8 +82,8 @@ impl From<zip::result::ZipError> for Error {
 }
 
 impl From<octocrab::Error> for Error {
-    fn from(_: octocrab::Error) -> Self {
-        Self::GithubError
+    fn from(err: octocrab::Error) -> Self {
+        Self::GithubError(err)
     }
 }
 
