@@ -177,7 +177,7 @@ fn target_json() -> String {
         "arch": "aarch64",
         "crt-static-default": false,
         "crt-static-respected": false,
-        "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128",
+        "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
         "dynamic-linking": true,
         "executables": true,
         "has-rpath": false,
