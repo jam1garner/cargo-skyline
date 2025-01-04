@@ -165,10 +165,10 @@ fn ensure_target_json_exists() {
         fs::write(&link_script_path, LINKER_SCRIPT).expect("Failed to create link.T linker script");
     }
 
-    if !target_json_path.exists() {
-        fs::write(&target_json_path, target_json())
-            .expect("Failed to create aarch64-skyline-switch target json");
-    }
+    // previously checked to make sure it didn't already exist, but maybe let's just always keep it
+    // up to date?
+    fs::write(target_json_path, target_json())
+        .expect("Failed to create aarch64-skyline-switch target json");
 }
 
 fn target_json() -> String {
