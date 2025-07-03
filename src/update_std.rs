@@ -225,11 +225,11 @@ fn target_json() -> String {
 pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
     let multiprogress = MultiProgress::new();
     let style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} {spinner} {wide_msg}");
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} {spinner} {wide_msg}").expect("Could not create a ProgressStyle");
     let finished_style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ✔️ {wide_msg}");
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ✔️ {wide_msg}").expect("Could not create a ProgressStyle");
     let failed_style =
-        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ❌ {wide_msg}");
+        ProgressStyle::default_spinner().template("{prefix:.bold.dim} ❌ {wide_msg}").expect("Could not create a ProgressStyle");
 
     let get_base_nightly_pb = multiprogress.add(
         ProgressBar::new_spinner()
@@ -252,7 +252,7 @@ pub fn create_modified_toolchain(deep: bool, pull: bool) -> Result<(), Error> {
             .with_style(style),
     );
 
-    std::thread::spawn(move || multiprogress.join());
+    multiprogress.clear().expect("Could not clear the MultiProgress instance");
 
     let toolchain = get_toolchain();
 
