@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-skyline"
-version = "3.4.0"
+version = "3.4.1"
 dependencies = [
  "cargo-skyline-octocrab",
  "cargo_metadata",
