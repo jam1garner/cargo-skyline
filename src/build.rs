@@ -114,15 +114,17 @@ fn cargo_run_command(
         .arg("run")
         .arg("skyline-v3")
         .arg("cargo")
-        .args(&[
+        .args([
             command.to_str(),
             "--message-format=json-diagnostic-rendered-ansi",
             "--color",
             "always",
+            "-Z",
+            "json-target-spec",
             "--target",
         ])
         .arg(&target_json_path)
-        .args(&["-Z", "build-std=core,alloc,std,panic_abort"])
+        .args(["-Z", "build-std=core,alloc,std,panic_abort"])
         .args(args)
         .env("SKYLINE_ADD_NRO_HEADER", "1")
         .env("RUSTFLAGS", "--cfg skyline_std_v3")
