@@ -187,7 +187,7 @@ fn target_json() -> String {
         "arch": "aarch64",
         "crt-static-default": false,
         "crt-static-respected": false,
-        "data-layout": "e-m:e-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
+        "data-layout": "e-m:e-p270:32:32-p271:32:32-p272:64:64-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128-Fn32",
         "dynamic-linking": true,
         "executables": true,
         "has-rpath": false,
@@ -196,6 +196,9 @@ fn target_json() -> String {
         "llvm-target": "aarch64-unknown-none",
         "max-atomic-width": 128,
         "os": "switch",
+        "target-family": null,
+        "env": "",
+        "disable-redzone": true,
         "panic-strategy": "abort",
         "position-independent-executables": true,
         "pre-link-args": {{
@@ -213,9 +216,10 @@ fn target_json() -> String {
           ]
         }},
         "relro-level": "off",
-        "target-c-int-width": "32",
+        "target-c-int-width": 32,
         "target-endian": "little",
-        "target-pointer-width": "64",
+        "target-pointer-width": 64,
+        "features": "+v8a,+neon,+crypto,+crc",
         "vendor": "jam1garner"
     }}"#,
         linker_script = linker_script.to_string_lossy()
